@@ -3,7 +3,7 @@ import type { GitHubConfig } from '@/lib/github';
 import { testConnection } from '@/lib/github';
 import { saveConfig } from '@/lib/githubConfig';
 import { getAllNotes } from '@/lib/storage';
-import { createNote } from '@/lib/githubStorage';
+import { migrateNotes } from '@/lib/githubStorage';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 
@@ -56,23 +56,13 @@ export function SettingsModal({ currentConfig, onClose, onSave }: SettingsModalP
     setMigrateMessage('');
     const cfg = buildConfig();
     const notes = getAllNotes();
-    let done = 0;
     try {
-      for (const note of notes) {
-        setMigrateProgress(`Uploading note ${done + 1} of ${notes.length}…`);
-        // eslint-disable-next-line no-await-in-loop
-        await createNote(cfg, {
-          date: note.date,
-          noteText: note.noteText,
-          plantName: note.plantName,
-          gardenLocation: note.gardenLocation,
-          photos: note.photos,
-        });
-        done++;
-      }
+      await migrateNotes(cfg, notes, (done, total) => {
+        setMigrateProgress(`Uploading note ${done} of ${total}…`);
+      });
       localStorage.removeItem('garden_planner_notes');
       setMigrateStatus('done');
-      setMigrateMessage(`Migrated ${done} note${done !== 1 ? 's' : ''} successfully. Local data cleared.`);
+      setMigrateMessage(`Migrated ${notes.length} note${notes.length !== 1 ? 's' : ''} successfully. Local data cleared.`);
       setMigrateProgress('');
     } catch (err) {
       setMigrateStatus('error');
@@ -131,7 +121,7 @@ export function SettingsModal({ currentConfig, onClose, onSave }: SettingsModalP
             type="text"
             value={repo}
             onChange={(e) => setRepo(e.target.value)}
-            placeholder="garden-data"
+            placeholder="data repository name"
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
           />
         </div>

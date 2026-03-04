@@ -126,3 +126,35 @@ export async function deleteNote(
   const filtered = existing.data.filter((n) => n.id !== id);
   await putFile(config, NOTES_PATH, jsonToBase64(filtered), `Delete note ${id}`, existing.sha);
 }
+
+/**
+ * Migrate a batch of notes (e.g. from localStorage) in a single notes.json write.
+ * onProgress is called after each note's photos are uploaded.
+ */
+export async function migrateNotes(
+  config: GitHubConfig,
+  localNotes: GardenNote[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<void> {
+  const migrated: GardenNote[] = [];
+  for (let i = 0; i < localNotes.length; i++) {
+    const note = localNotes[i];
+    // Upload photos for this note (they have dataUrl, no path)
+    // eslint-disable-next-line no-await-in-loop
+    const uploadedPhotos = await Promise.all(note.photos.map((p) => uploadPhoto(config, p)));
+    migrated.push({ ...note, photos: uploadedPhotos });
+    onProgress?.(i + 1, localNotes.length);
+  }
+
+  // Single read-modify-write for notes.json
+  const existing = await getJsonFile<GardenNote[]>(config, NOTES_PATH);
+  const base = existing?.data ?? [];
+  const sha = existing?.sha;
+  await putFile(
+    config,
+    NOTES_PATH,
+    jsonToBase64([...base, ...migrated]),
+    `Migrate ${migrated.length} notes from localStorage`,
+    sha,
+  );
+}
