@@ -98,29 +98,50 @@ export function useLayout(config: GitHubConfig | null) {
 
   async function editPlanting(bedId: string, plantingId: string, data: PlantingFormData) {
     if (!config) return;
-    setIsMutating(true);
+    // Optimistic update — same pattern as movePlanting
+    setBeds((prev) =>
+      prev.map((b) => {
+        if (b.id !== bedId) return b;
+        return {
+          ...b,
+          plantings: b.plantings.map((p) =>
+            p.id !== plantingId ? p : {
+              ...p,
+              plantName: data.plantName,
+              color: data.color,
+              width: data.width,
+              height: data.height,
+              sowDate: data.sowDate || undefined,
+              harvestDate: data.harvestDate || undefined,
+            },
+          ),
+        };
+      }),
+    );
     setError(null);
     try {
       await updatePlanting(config, bedId, plantingId, data);
-      await loadBeds(config);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsMutating(false);
+      await loadBeds(config);
     }
   }
 
   async function removePlanting(bedId: string, plantingId: string) {
     if (!config) return;
-    setIsMutating(true);
+    // Optimistic update
+    setBeds((prev) =>
+      prev.map((b) => {
+        if (b.id !== bedId) return b;
+        return { ...b, plantings: b.plantings.filter((p) => p.id !== plantingId) };
+      }),
+    );
     setError(null);
     try {
       await deletePlanting(config, bedId, plantingId);
-      await loadBeds(config);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsMutating(false);
+      await loadBeds(config);
     }
   }
 
