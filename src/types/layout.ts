@@ -7,6 +7,7 @@ export interface Planting {
   width: number;        // columns spanned (≥ 1, in grid cells)
   height: number;       // rows spanned (≥ 1, in grid cells)
   plantName: string;
+  color?: string;       // hex color, e.g. "#86efac"
   sowDate?: string;     // "YYYY-MM-DD"
   harvestDate?: string; // "YYYY-MM-DD"
 }
@@ -25,6 +26,7 @@ export type BedFormData = Pick<GardenBed, 'name' | 'widthIn' | 'heightIn'>;
 
 export type PlantingFormData = {
   plantName: string;
+  color: string;
   width: number;
   height: number;
   sowDate: string;
@@ -36,10 +38,12 @@ export const CELL_SIZE_IN = 12;
 
 /** Number of grid columns for a bed. */
 export function bedGridCols(bed: GardenBed): number {
-  return Math.max(1, Math.round(bed.widthIn / CELL_SIZE_IN));
+  //return Math.max(1, Math.round(bed.widthIn / CELL_SIZE_IN));
+  return bed.widthIn;
 }
 
 /** Number of grid rows for a bed. */
 export function bedGridRows(bed: GardenBed): number {
-  return Math.max(1, Math.round(bed.heightIn / CELL_SIZE_IN));
+  //return Math.max(1, Math.round(bed.heightIn / CELL_SIZE_IN));
+  return bed.heightIn;
 }

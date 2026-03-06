@@ -3,6 +3,19 @@ import type { Planting, PlantingFormData, GardenBed } from '@/types/layout';
 import { bedGridCols, bedGridRows } from '@/types/layout';
 import { Button } from '@/components/ui/Button';
 
+const PRESET_COLORS = [
+  '#86efac', // soft green
+  '#fde047', // soft yellow
+  '#fdba74', // soft orange
+  '#fca5a5', // soft red
+  '#d8b4fe', // soft purple
+  '#93c5fd', // soft blue
+  '#f9a8d4', // soft pink
+  '#cbd5e1', // soft gray
+];
+
+const DEFAULT_COLOR = PRESET_COLORS[0];
+
 interface PlantingFormProps {
   planting?: Planting;
   row: number;
@@ -48,6 +61,7 @@ export function PlantingForm({
   loading = false,
 }: PlantingFormProps) {
   const [plantName, setPlantName] = useState(planting?.plantName ?? '');
+  const [color, setColor] = useState(planting?.color ?? DEFAULT_COLOR);
   const [width, setWidth] = useState(planting?.width ?? 1);
   const [height, setHeight] = useState(planting?.height ?? 1);
   const [sowDate, setSowDate] = useState(planting?.sowDate ?? '');
@@ -73,7 +87,7 @@ export function PlantingForm({
     e.preventDefault();
     const errs = validate();
     if (errs.length > 0) { setErrors(errs); return; }
-    onSubmit({ plantName: plantName.trim(), width, height, sowDate, harvestDate });
+    onSubmit({ plantName: plantName.trim(), color, width, height, sowDate, harvestDate });
   }
 
   return (
@@ -93,6 +107,32 @@ export function PlantingForm({
           placeholder="e.g. Tomatoes"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+        <div className="flex items-center gap-2 flex-wrap">
+          {PRESET_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setColor(c)}
+              style={{ backgroundColor: c }}
+              className={[
+                'w-7 h-7 rounded-full border-2 transition-transform',
+                color === c ? 'border-gray-600 scale-110' : 'border-transparent hover:scale-105',
+              ].join(' ')}
+              title={c}
+            />
+          ))}
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="w-7 h-7 rounded cursor-pointer border border-gray-300"
+            title="Custom color"
+          />
+        </div>
       </div>
 
       <div className="flex gap-4">

@@ -83,6 +83,7 @@ export async function addPlanting(
     width: data.width,
     height: data.height,
     plantName: data.plantName,
+    color: data.color,
     ...(data.sowDate ? { sowDate: data.sowDate } : {}),
     ...(data.harvestDate ? { harvestDate: data.harvestDate } : {}),
   };
@@ -114,6 +115,7 @@ export async function updatePlanting(
       return {
         ...p,
         plantName: data.plantName,
+        color: data.color,
         width: data.width,
         height: data.height,
         sowDate: data.sowDate || undefined,

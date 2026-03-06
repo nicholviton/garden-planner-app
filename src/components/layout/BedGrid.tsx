@@ -1,6 +1,9 @@
 import type { GardenBed, Planting } from '@/types/layout';
 import { bedGridCols, bedGridRows } from '@/types/layout';
 
+const CELL_PX = 10;
+const DEFAULT_PLANT_COLOR = '#86efac';
+
 interface BedGridProps {
   bed: GardenBed;
   year: number;
@@ -26,7 +29,6 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick }: BedGri
   const yearPlantings = bed.plantings.filter((p) => p.year === year);
   const occupied = getOccupiedCells(yearPlantings);
 
-  // Build grid items: empty cells + planting tiles
   const cells: React.ReactNode[] = [];
 
   // Empty cells (skip occupied ones)
@@ -39,10 +41,12 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick }: BedGri
           type="button"
           onClick={() => onEmptyCellClick(r, c)}
           style={{ gridColumn: c + 1, gridRow: r + 1 }}
-          className="min-h-[4rem] rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 hover:border-garden-400 hover:text-garden-400 hover:bg-garden-50 transition-colors group"
+          className="rounded border border-dashed border-gray-300 hover:border-garden-400 hover:bg-garden-50 transition-colors group"
           title={`Row ${r + 1}, Col ${c + 1}`}
         >
-          <span className="text-lg leading-none opacity-0 group-hover:opacity-100 transition-opacity">+</span>
+          <span className="text-[9px] leading-none text-gray-300 group-hover:text-garden-400 flex items-center justify-center w-full h-full">
+            +
+          </span>
         </button>,
       );
     }
@@ -50,6 +54,9 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick }: BedGri
 
   // Planting tiles
   for (const p of yearPlantings) {
+    const bg = p.color ?? DEFAULT_PLANT_COLOR;
+    const tileW = p.width * CELL_PX + (p.width - 1); // include gap pixels
+    const tileH = p.height * CELL_PX + (p.height - 1);
     cells.push(
       <button
         key={`planting-${p.id}`}
@@ -58,41 +65,31 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick }: BedGri
         style={{
           gridColumn: `${p.col + 1} / span ${p.width}`,
           gridRow: `${p.row + 1} / span ${p.height}`,
+          backgroundColor: bg,
+          width: tileW,
+          height: tileH,
         }}
-        className="min-h-[4rem] rounded-full bg-garden-200 border-2 border-garden-400 flex flex-col items-center justify-center p-2 hover:bg-garden-300 transition-colors cursor-pointer"
+        className="rounded-lg border border-white/60 flex flex-col items-center justify-center overflow-hidden cursor-pointer hover:brightness-90 transition-all p-0.5"
         title={p.plantName}
       >
-        <span className="text-xs font-medium text-garden-800 text-center leading-snug break-words w-full">
+        <span className="text-[9px] font-medium text-gray-800 text-center leading-tight w-full truncate px-0.5">
           {p.plantName}
         </span>
-        {(p.sowDate || p.harvestDate) && (
-          <div className="mt-1 flex flex-col items-center gap-0.5">
-            {p.sowDate && (
-              <span className="text-[10px] bg-earth-100 text-earth-700 rounded px-1 py-0.5 leading-none">
-                Sow: {p.sowDate}
-              </span>
-            )}
-            {p.harvestDate && (
-              <span className="text-[10px] bg-earth-100 text-earth-700 rounded px-1 py-0.5 leading-none">
-                Harvest: {p.harvestDate}
-              </span>
-            )}
-          </div>
-        )}
       </button>,
     );
   }
 
   return (
-    <div
-      className="grid gap-1 p-2 bg-gray-50 rounded-lg border border-gray-200"
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${rows}, minmax(4rem, auto))`,
-      }}
-    >
-      {cells}
+    <div className="overflow-auto">
+      <div
+        className="p-1 bg-gray-50 rounded-lg border border-gray-200 inline-grid gap-px"
+        style={{
+          gridTemplateColumns: `repeat(${cols}, ${CELL_PX}px)`,
+          gridTemplateRows: `repeat(${rows}, ${CELL_PX}px)`,
+        }}
+      >
+        {cells}
+      </div>
     </div>
   );
 }
