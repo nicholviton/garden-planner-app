@@ -110,7 +110,7 @@ export function useLayout(config: GitHubConfig | null) {
               plantName: data.plantName,
               color: data.color,
               width: data.width,
-              height: data.height,
+              height: data.width,
               sowDate: data.sowDate || undefined,
               harvestDate: data.harvestDate || undefined,
             },

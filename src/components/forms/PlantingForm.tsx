@@ -28,26 +28,6 @@ interface PlantingFormProps {
   loading?: boolean;
 }
 
-export function wouldOverlap(
-  existing: Planting[],
-  row: number,
-  col: number,
-  width: number,
-  height: number,
-  excludeId?: string,
-): boolean {
-  for (const p of existing) {
-    if (p.id === excludeId) continue;
-    if (
-      row < p.row + p.height &&
-      row + height > p.row &&
-      col < p.col + p.width &&
-      col + width > p.col
-    )
-      return true;
-  }
-  return false;
-}
 
 export function PlantingForm({
   planting,
@@ -63,23 +43,17 @@ export function PlantingForm({
   const [plantName, setPlantName] = useState(planting?.plantName ?? '');
   const [color, setColor] = useState(planting?.color ?? DEFAULT_COLOR);
   const [width, setWidth] = useState(planting?.width ?? 1);
-  const [height, setHeight] = useState(planting?.height ?? 1);
   const [sowDate, setSowDate] = useState(planting?.sowDate ?? '');
   const [harvestDate, setHarvestDate] = useState(planting?.harvestDate ?? '');
   const [errors, setErrors] = useState<string[]>([]);
 
-  const maxWidth = bedGridCols(bed) - col;
-  const maxHeight = bedGridRows(bed) - row;
+  // Circle: width = height, so max is constrained by both axes
+  const maxWidth = Math.min(bedGridCols(bed) - col, bedGridRows(bed) - row);
 
   function validate(): string[] {
     const errs: string[] = [];
     if (!plantName.trim()) errs.push('Plant name is required.');
-    if (width < 1 || width > maxWidth) errs.push(`Width must be between 1 and ${maxWidth}.`);
-    if (height < 1 || height > maxHeight) errs.push(`Height must be between 1 and ${maxHeight}.`);
-    const yearPlantings = bed.plantings.filter((p) => p.year === year);
-    if (wouldOverlap(yearPlantings, row, col, width, height, planting?.id)) {
-      errs.push('This area overlaps with another planting.');
-    }
+    if (width < 1 || width > maxWidth) errs.push(`Size must be between 1 and ${maxWidth}.`);
     return errs;
   }
 
@@ -87,7 +61,7 @@ export function PlantingForm({
     e.preventDefault();
     const errs = validate();
     if (errs.length > 0) { setErrors(errs); return; }
-    onSubmit({ plantName: plantName.trim(), color, width, height, sowDate, harvestDate });
+    onSubmit({ plantName: plantName.trim(), color, width, sowDate, harvestDate });
   }
 
   return (
@@ -135,33 +109,18 @@ export function PlantingForm({
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Width (cols) <span className="text-gray-400 font-normal">max {maxWidth}</span>
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={maxWidth}
-            value={width}
-            onChange={(e) => { setWidth(Math.max(1, Math.min(maxWidth, parseInt(e.target.value) || 1))); setErrors([]); }}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Height (rows) <span className="text-gray-400 font-normal">max {maxHeight}</span>
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={maxHeight}
-            value={height}
-            onChange={(e) => { setHeight(Math.max(1, Math.min(maxHeight, parseInt(e.target.value) || 1))); setErrors([]); }}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Size (cells) <span className="text-gray-400 font-normal">max {maxWidth}</span>
+        </label>
+        <input
+          type="number"
+          min={1}
+          max={maxWidth}
+          value={width}
+          onChange={(e) => { setWidth(Math.max(1, Math.min(maxWidth, parseInt(e.target.value) || 1))); setErrors([]); }}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+        />
       </div>
 
       <div className="flex gap-4">

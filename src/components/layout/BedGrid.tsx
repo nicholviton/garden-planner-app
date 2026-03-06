@@ -21,6 +21,7 @@ interface DragState {
   grabCol: number; // which col within the planting tile was grabbed
 }
 
+/*
 function getOccupiedCells(plantings: Planting[]): Set<string> {
   const s = new Set<string>();
   for (const p of plantings) {
@@ -30,25 +31,13 @@ function getOccupiedCells(plantings: Planting[]): Set<string> {
   }
   return s;
 }
-
-function overlaps(
-  plantings: Planting[],
-  row: number, col: number, w: number, h: number,
-  excludeId?: string,
-): boolean {
-  for (const p of plantings) {
-    if (p.id === excludeId) continue;
-    if (row < p.row + p.height && row + h > p.row &&
-        col < p.col + p.width  && col + w > p.col) return true;
-  }
-  return false;
-}
+*/
 
 export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePlanting }: BedGridProps) {
   const cols = bedGridCols(bed);
   const rows = bedGridRows(bed);
   const yearPlantings = bed.plantings.filter((p) => p.year === year);
-  const occupied = getOccupiedCells(yearPlantings);
+  //const occupied = getOccupiedCells(yearPlantings);
 
   const [drag, setDrag] = useState<DragState | null>(null);
   const [hoverCell, setHoverCell] = useState<{ row: number; col: number } | null>(null);
@@ -75,20 +64,18 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
     if (!drag) return;
     const pos = proposed(row, col);
     if (!pos) return;
-    const valid = !overlaps(yearPlantings, pos.row, pos.col, drag.planting.width, drag.planting.height, drag.planting.id);
-    if (valid && (pos.row !== drag.planting.row || pos.col !== drag.planting.col)) {
+    if (pos.row !== drag.planting.row || pos.col !== drag.planting.col) {
       onMovePlanting(drag.planting, pos.row, pos.col);
     }
     setDrag(null);
     setHoverCell(null);
   }
 
-  // Compute preview info
+  // Compute preview info — overlaps are allowed so always valid
   const preview = (drag && hoverCell) ? (() => {
     const pos = proposed(hoverCell.row, hoverCell.col);
     if (!pos) return null;
-    const valid = !overlaps(yearPlantings, pos.row, pos.col, drag.planting.width, drag.planting.height, drag.planting.id);
-    return { ...pos, valid };
+    return { ...pos, valid: true };
   })() : null;
 
   const cells: ReactNode[] = [];
@@ -96,7 +83,7 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
   // Empty cells
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (occupied.has(`${r},${c}`)) continue;
+      //if (occupied.has(`${r},${c}`)) continue;
       cells.push(
         <button
           key={`e-${r}-${c}`}
@@ -142,7 +129,7 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
         onDragEnd={() => { setDrag(null); setHoverCell(null); }}
         onDragOver={(e) => {
           // Allow dragging over other plantings (to reach cells underneath)
-          if (!drag || drag.planting.id === p.id) return;
+          //if (!drag || drag.planting.id === p.id) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
           const rect = e.currentTarget.getBoundingClientRect();
@@ -151,7 +138,7 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
           setHoverCell({ row: p.row + cellRow, col: p.col + cellCol });
         }}
         onDrop={(e) => {
-          if (!drag || drag.planting.id === p.id) return;
+          //if (!drag || drag.planting.id === p.id) return;
           const rect = e.currentTarget.getBoundingClientRect();
           const cellCol = Math.max(0, Math.min(p.width  - 1, Math.floor((e.clientX - rect.left) / CELL_STEP)));
           const cellRow = Math.max(0, Math.min(p.height - 1, Math.floor((e.clientY - rect.top)  / CELL_STEP)));
@@ -164,7 +151,7 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
           backgroundColor: bg,
           opacity: isDragging ? 0.35 : 1,
         }}
-        className="rounded-lg border border-white/60 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-90 transition-opacity p-0.5"
+        className="rounded-full border border-white/60 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-90 transition-opacity p-0.5"
         title={p.plantName}
       >
         <span className="text-[8px] font-semibold text-gray-800 text-center leading-tight w-full truncate px-0.5 select-none pointer-events-none">
@@ -188,7 +175,7 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
           position: 'relative',
           pointerEvents: 'none',
         }}
-        className="rounded-lg"
+        className="rounded-full"
       />,
     );
   }

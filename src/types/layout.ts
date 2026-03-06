@@ -27,8 +27,7 @@ export type BedFormData = Pick<GardenBed, 'name' | 'widthIn' | 'heightIn'>;
 export type PlantingFormData = {
   plantName: string;
   color: string;
-  width: number;
-  height: number;
+  width: number;        // also used as height (circle: height = width)
   sowDate: string;
   harvestDate: string;
 };

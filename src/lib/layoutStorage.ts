@@ -103,7 +103,7 @@ export async function addPlanting(
     row,
     col,
     width: data.width,
-    height: data.height,
+    height: data.width,   // circle: height always equals width
     plantName: data.plantName,
     color: data.color,
     ...(data.sowDate ? { sowDate: data.sowDate } : {}),
@@ -139,7 +139,7 @@ export async function updatePlanting(
         plantName: data.plantName,
         color: data.color,
         width: data.width,
-        height: data.height,
+        height: data.width,   // circle: height always equals width
         sowDate: data.sowDate || undefined,
         harvestDate: data.harvestDate || undefined,
       };
