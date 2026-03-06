@@ -15,6 +15,7 @@ interface LayoutViewProps {
   onDeleteBed: (bed: GardenBed) => void;
   onEmptyCellClick: (bed: GardenBed, row: number, col: number) => void;
   onPlantingClick: (bed: GardenBed, planting: Planting) => void;
+  onMovePlanting: (bed: GardenBed, planting: Planting, newRow: number, newCol: number) => void;
 }
 
 export function LayoutView({
@@ -29,6 +30,7 @@ export function LayoutView({
   onDeleteBed,
   onEmptyCellClick,
   onPlantingClick,
+  onMovePlanting,
 }: LayoutViewProps) {
   if (isLoading) {
     return (
@@ -83,6 +85,7 @@ export function LayoutView({
         onDeleteBed={onDeleteBed}
         onEmptyCellClick={onEmptyCellClick}
         onPlantingClick={onPlantingClick}
+        onMovePlanting={onMovePlanting}
       />
     </div>
   );

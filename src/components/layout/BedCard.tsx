@@ -10,9 +10,10 @@ interface BedCardProps {
   onDelete: (bed: GardenBed) => void;
   onEmptyCellClick: (bed: GardenBed, row: number, col: number) => void;
   onPlantingClick: (bed: GardenBed, planting: Planting) => void;
+  onMovePlanting: (bed: GardenBed, planting: Planting, newRow: number, newCol: number) => void;
 }
 
-export function BedCard({ bed, year, onEdit, onDelete, onEmptyCellClick, onPlantingClick }: BedCardProps) {
+export function BedCard({ bed, year, onEdit, onDelete, onEmptyCellClick, onPlantingClick, onMovePlanting }: BedCardProps) {
   const yearCount = bed.plantings.filter((p) => p.year === year).length;
 
   return (
@@ -49,6 +50,7 @@ export function BedCard({ bed, year, onEdit, onDelete, onEmptyCellClick, onPlant
           year={year}
           onEmptyCellClick={(row, col) => onEmptyCellClick(bed, row, col)}
           onPlantingClick={(planting) => onPlantingClick(bed, planting)}
+          onMovePlanting={(planting, newRow, newCol) => onMovePlanting(bed, planting, newRow, newCol)}
         />
       </div>
     </div>

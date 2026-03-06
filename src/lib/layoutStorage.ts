@@ -59,6 +59,28 @@ export async function updateBed(
   return updated;
 }
 
+export async function movePlanting(
+  config: GitHubConfig,
+  bedId: string,
+  plantingId: string,
+  newRow: number,
+  newCol: number,
+): Promise<GardenBed> {
+  const { beds, sha } = await readBeds(config);
+  let updated: GardenBed | undefined;
+  const newBeds = beds.map((b) => {
+    if (b.id !== bedId) return b;
+    const newPlantings = b.plantings.map((p) =>
+      p.id === plantingId ? { ...p, row: newRow, col: newCol } : p,
+    );
+    updated = { ...b, plantings: newPlantings, updatedAt: new Date().toISOString() };
+    return updated;
+  });
+  if (!updated) throw new Error(`Bed ${bedId} not found`);
+  await writeBeds(config, newBeds, sha);
+  return updated;
+}
+
 export async function deleteBed(config: GitHubConfig, id: string): Promise<void> {
   const { beds, sha } = await readBeds(config);
   const filtered = beds.filter((b) => b.id !== id);

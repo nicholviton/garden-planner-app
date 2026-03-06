@@ -48,6 +48,7 @@ export default function App() {
     savePlanting,
     editPlanting,
     removePlanting,
+    movePlanting,
   } = useLayout(config);
   const [isAddBedOpen, setIsAddBedOpen] = useState(false);
   const [editingBed, setEditingBed] = useState<GardenBed | null>(null);
@@ -191,6 +192,7 @@ export default function App() {
               onDeleteBed={(bed) => setConfirmDeleteBed(bed)}
               onEmptyCellClick={(bed, row, col) => setEditingPlanting({ bed, row, col })}
               onPlantingClick={(bed, planting) => setEditingPlanting({ bed, planting, row: planting.row, col: planting.col })}
+              onMovePlanting={(bed, planting, newRow, newCol) => movePlanting(bed.id, planting.id, newRow, newCol)}
             />
           </main>
         )}

@@ -9,9 +9,10 @@ interface BedListProps {
   onDeleteBed: (bed: GardenBed) => void;
   onEmptyCellClick: (bed: GardenBed, row: number, col: number) => void;
   onPlantingClick: (bed: GardenBed, planting: Planting) => void;
+  onMovePlanting: (bed: GardenBed, planting: Planting, newRow: number, newCol: number) => void;
 }
 
-export function BedList({ beds, year, onEditBed, onDeleteBed, onEmptyCellClick, onPlantingClick }: BedListProps) {
+export function BedList({ beds, year, onEditBed, onDeleteBed, onEmptyCellClick, onPlantingClick, onMovePlanting }: BedListProps) {
   if (beds.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-gray-400">
@@ -33,6 +34,7 @@ export function BedList({ beds, year, onEditBed, onDeleteBed, onEmptyCellClick, 
           onDelete={onDeleteBed}
           onEmptyCellClick={onEmptyCellClick}
           onPlantingClick={onPlantingClick}
+          onMovePlanting={onMovePlanting}
         />
       ))}
     </div>

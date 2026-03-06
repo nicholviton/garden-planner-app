@@ -9,6 +9,7 @@ import {
   addPlanting,
   updatePlanting,
   deletePlanting,
+  movePlanting as storageMoveePlanting,
 } from '@/lib/layoutStorage';
 
 export function useLayout(config: GitHubConfig | null) {
@@ -123,6 +124,30 @@ export function useLayout(config: GitHubConfig | null) {
     }
   }
 
+  async function movePlanting(bedId: string, plantingId: string, newRow: number, newCol: number) {
+    if (!config) return;
+    // Optimistic update — instant visual response
+    setBeds((prev) =>
+      prev.map((b) => {
+        if (b.id !== bedId) return b;
+        return {
+          ...b,
+          plantings: b.plantings.map((p) =>
+            p.id === plantingId ? { ...p, row: newRow, col: newCol } : p,
+          ),
+        };
+      }),
+    );
+    setError(null);
+    try {
+      await storageMoveePlanting(config, bedId, plantingId, newRow, newCol);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      // Reload true state on failure
+      await loadBeds(config);
+    }
+  }
+
   return {
     beds,
     isLoading,
@@ -136,5 +161,6 @@ export function useLayout(config: GitHubConfig | null) {
     savePlanting,
     editPlanting,
     removePlanting,
+    movePlanting,
   };
 }
