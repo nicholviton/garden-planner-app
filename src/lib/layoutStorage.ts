@@ -152,6 +152,39 @@ export async function updatePlanting(
   return updated;
 }
 
+/** Scan row-major for the first clear (size × size) area in the given year. Falls back to (0, 0). */
+export function findPlacement(bed: GardenBed, year: number, size: number): { row: number; col: number } {
+  const cols = bed.widthIn;
+  const rows = bed.heightIn;
+  const yearPlantings = bed.plantings.filter((p) => p.year === year);
+
+  for (let r = 0; r <= rows - size; r++) {
+    for (let c = 0; c <= cols - size; c++) {
+      const blocked = yearPlantings.some(
+        (p) =>
+          r < p.row + p.height && r + size > p.row &&
+          c < p.col + p.width  && c + size > p.col,
+      );
+      if (!blocked) 
+        return { row: r, col: c };
+    }
+  }
+  return { row: 0, col: 0 };
+}
+
+export async function insertPlanting(config: GitHubConfig, planting: Planting): Promise<GardenBed> {
+  const { beds, sha } = await readBeds(config);
+  let updated: GardenBed | undefined;
+  const newBeds = beds.map((b) => {
+    if (b.id !== planting.bedId) return b;
+    updated = { ...b, plantings: [...b.plantings, planting], updatedAt: new Date().toISOString() };
+    return updated;
+  });
+  if (!updated) throw new Error(`Bed ${planting.bedId} not found`);
+  await writeBeds(config, newBeds, sha);
+  return updated;
+}
+
 export async function deletePlanting(
   config: GitHubConfig,
   bedId: string,

@@ -1,7 +1,9 @@
 import { Plus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { GardenBed, Planting } from '@/types/layout';
+import type { PlantType } from '@/types/plantType';
 import { Button } from '@/components/ui/Button';
 import { BedList } from './BedList';
+import { QuickPlant } from './QuickPlant';
 
 interface LayoutViewProps {
   beds: GardenBed[];
@@ -10,12 +12,14 @@ interface LayoutViewProps {
   isLoading: boolean;
   isMutating: boolean;
   hasConfig: boolean;
+  plantTypes: PlantType[];
   onAddBed: () => void;
   onEditBed: (bed: GardenBed) => void;
   onDeleteBed: (bed: GardenBed) => void;
   onEmptyCellClick: (bed: GardenBed, row: number, col: number) => void;
   onPlantingClick: (bed: GardenBed, planting: Planting) => void;
   onMovePlanting: (bed: GardenBed, planting: Planting, newRow: number, newCol: number) => void;
+  onQuickPlant: (plantType: PlantType, bedId: string) => void;
 }
 
 export function LayoutView({
@@ -25,12 +29,14 @@ export function LayoutView({
   isLoading,
   isMutating,
   hasConfig,
+  plantTypes,
   onAddBed,
   onEditBed,
   onDeleteBed,
   onEmptyCellClick,
   onPlantingClick,
   onMovePlanting,
+  onQuickPlant,
 }: LayoutViewProps) {
   if (isLoading) {
     return (
@@ -77,6 +83,14 @@ export function LayoutView({
           Add Bed
         </Button>
       </div>
+
+      <QuickPlant
+        plantTypes={plantTypes}
+        beds={beds}
+        isMutating={isMutating}
+        hasConfig={hasConfig}
+        onPlant={onQuickPlant}
+      />
 
       <BedList
         beds={beds}

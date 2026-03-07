@@ -155,7 +155,7 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
         title={p.plantName}
       >
         <span className="text-[8px] font-semibold text-gray-800 text-center leading-tight w-full truncate px-0.5 select-none pointer-events-none">
-          {p.plantName}
+          {p.plantName} <br /> Row: {p.row} Col: {p.col}
         </span>
       </button>,
     );

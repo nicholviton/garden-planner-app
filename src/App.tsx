@@ -4,9 +4,11 @@ import { loadConfig } from '@/lib/githubConfig';
 import type { GitHubConfig } from '@/lib/github';
 import { useNotes } from '@/hooks/useNotes';
 import { useLayout } from '@/hooks/useLayout';
+import { usePlantTypes } from '@/hooks/usePlantTypes';
 import { GitHubConfigContext } from '@/contexts/GitHubConfigContext';
 import type { GardenNote } from '@/types/note';
 import type { GardenBed, Planting, PlantingFormData } from '@/types/layout';
+import type { PlantType } from '@/types/plantType';
 
 import { Header } from '@/components/layout/Header';
 import { TabBar } from '@/components/layout/TabBar';
@@ -21,11 +23,12 @@ import { PlantingForm } from '@/components/forms/PlantingForm';
 import { LayoutView } from '@/components/layout/LayoutView';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SettingsModal } from '@/components/settings/SettingsModal';
+import { PlantTypeList } from '@/components/plants/PlantTypeList';
 
 export default function App() {
   const [config, setConfig] = useState<GitHubConfig | null>(loadConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(!config);
-  const [activeTab, setActiveTab] = useState<'notes' | 'layout'>('notes');
+  const [activeTab, setActiveTab] = useState<'notes' | 'layout' | 'plants'>('notes');
 
   // Notes
   const { notes, totalCount, isLoading, isMutating, error, searchQuery, setSearchQuery, addNote, editNote, removeNote } = useNotes(config);
@@ -49,7 +52,20 @@ export default function App() {
     editPlanting,
     removePlanting,
     movePlanting,
+    addPlantingFromType,
+    loadBeds,
   } = useLayout(config);
+
+  // Plant Types
+  const {
+    plantTypes,
+    isLoading: isPlantTypesLoading,
+    isMutating: isPlantTypesMutating,
+    error: plantTypesError,
+    addPlantType,
+    editPlantType,
+    removePlantType,
+  } = usePlantTypes(config);
   const [isAddBedOpen, setIsAddBedOpen] = useState(false);
   const [editingBed, setEditingBed] = useState<GardenBed | null>(null);
   const [confirmDeleteBed, setConfirmDeleteBed] = useState<GardenBed | null>(null);
@@ -117,7 +133,10 @@ export default function App() {
     setIsSettingsOpen(false);
   }
 
-  const activeError = activeTab === 'notes' ? error : layoutError;
+  const activeError =
+    activeTab === 'notes' ? error :
+    activeTab === 'layout' ? layoutError :
+    plantTypesError;
 
   return (
     <GitHubConfigContext.Provider value={config}>
@@ -187,12 +206,28 @@ export default function App() {
               isLoading={isLayoutLoading}
               isMutating={isLayoutMutating}
               hasConfig={!!config}
+              plantTypes={plantTypes}
               onAddBed={() => setIsAddBedOpen(true)}
               onEditBed={(bed) => setEditingBed(bed)}
               onDeleteBed={(bed) => setConfirmDeleteBed(bed)}
               onEmptyCellClick={(bed, row, col) => setEditingPlanting({ bed, row, col })}
               onPlantingClick={(bed, planting) => setEditingPlanting({ bed, planting, row: planting.row, col: planting.col })}
               onMovePlanting={(bed, planting, newRow, newCol) => movePlanting(bed.id, planting.id, newRow, newCol)}
+              onQuickPlant={(plantType: PlantType, bedId: string) => addPlantingFromType(bedId, plantType)}
+            />
+          </main>
+        )}
+
+        {activeTab === 'plants' && (
+          <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
+            <PlantTypeList
+              plantTypes={plantTypes}
+              isLoading={isPlantTypesLoading}
+              isMutating={isPlantTypesMutating}
+              hasConfig={!!config}
+              onAdd={addPlantType}
+              onEdit={editPlantType}
+              onRemove={removePlantType}
             />
           </main>
         )}

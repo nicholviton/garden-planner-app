@@ -1,13 +1,19 @@
 interface TabBarProps {
-  activeTab: 'notes' | 'layout';
-  onTabChange: (tab: 'notes' | 'layout') => void;
+  activeTab: 'notes' | 'layout' | 'plants';
+  onTabChange: (tab: 'notes' | 'layout' | 'plants') => void;
 }
+
+const TAB_LABELS: Record<'notes' | 'layout' | 'plants', string> = {
+  notes: 'Notes',
+  layout: 'Garden Layout',
+  plants: 'Plant Types',
+};
 
 export function TabBar({ activeTab, onTabChange }: TabBarProps) {
   return (
     <div className="border-b border-gray-200 bg-white">
       <div className="max-w-6xl mx-auto px-4 flex gap-0">
-        {(['notes', 'layout'] as const).map((tab) => (
+        {(['notes', 'layout', 'plants'] as const).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -19,7 +25,7 @@ export function TabBar({ activeTab, onTabChange }: TabBarProps) {
                 : 'border-transparent text-gray-500 hover:text-gray-700',
             ].join(' ')}
           >
-            {tab === 'notes' ? 'Notes' : 'Garden Layout'}
+            {TAB_LABELS[tab]}
           </button>
         ))}
       </div>
