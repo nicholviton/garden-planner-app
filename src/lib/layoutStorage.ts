@@ -108,6 +108,7 @@ export async function addPlanting(
     color: data.color,
     ...(data.sowDate ? { sowDate: data.sowDate } : {}),
     ...(data.harvestDate ? { harvestDate: data.harvestDate } : {}),
+    ...(data.daysToHarvest.trim() !== '' ? { daysToHarvest: parseInt(data.daysToHarvest) } : {}),
   };
   let updated: GardenBed | undefined;
   const newBeds = beds.map((b) => {
@@ -142,6 +143,7 @@ export async function updatePlanting(
         height: data.width,   // circle: height always equals width
         sowDate: data.sowDate || undefined,
         harvestDate: data.harvestDate || undefined,
+        daysToHarvest: data.daysToHarvest.trim() !== '' ? parseInt(data.daysToHarvest) : undefined,
       };
     });
     updated = { ...b, plantings: newPlantings, updatedAt: new Date().toISOString() };

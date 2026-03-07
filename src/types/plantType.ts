@@ -6,6 +6,7 @@ export interface PlantType {
   width: number;
   color: string;
   year: number;
+  daysToHarvest?: number;
   createdAt: string;
 }
 

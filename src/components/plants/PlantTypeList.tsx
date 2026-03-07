@@ -84,6 +84,12 @@ export function PlantTypeList({
                     <span>{pt.width} cell{pt.width !== 1 ? 's' : ''}</span>
                     <span>·</span>
                     <span>{pt.year}</span>
+                      {pt.daysToHarvest != null && (
+                        <>
+                          <span>·</span>
+                          <span>{pt.daysToHarvest}d harvest</span>
+                        </>
+                      )}
                   </div>
                 </div>
                 <div className="flex gap-1 flex-shrink-0">

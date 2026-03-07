@@ -8,8 +8,9 @@ export interface Planting {
   height: number;       // rows spanned (≥ 1, in grid cells)
   plantName: string;
   color?: string;       // hex color, e.g. "#86efac"
-  sowDate?: string;     // "YYYY-MM-DD"
-  harvestDate?: string; // "YYYY-MM-DD"
+  sowDate?: string;       // "YYYY-MM-DD"
+  harvestDate?: string;   // "YYYY-MM-DD"
+  daysToHarvest?: number;
 }
 
 export interface GardenBed {
@@ -30,6 +31,7 @@ export type PlantingFormData = {
   width: number;        // also used as height (circle: height = width)
   sowDate: string;
   harvestDate: string;
+  daysToHarvest: string; // empty string = not set
 };
 
 /** Each grid cell represents this many inches (1 sq ft). */

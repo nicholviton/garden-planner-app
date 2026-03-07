@@ -121,6 +121,7 @@ export function useLayout(config: GitHubConfig | null) {
               height: data.width,
               sowDate: data.sowDate || undefined,
               harvestDate: data.harvestDate || undefined,
+              daysToHarvest: data.daysToHarvest.trim() !== '' ? parseInt(data.daysToHarvest) : undefined,
             },
           ),
         };
@@ -211,6 +212,7 @@ export function useLayout(config: GitHubConfig | null) {
       height: plantType.width,
       plantName: plantType.plantName,
       color: plantType.color,
+      ...(plantType.daysToHarvest != null ? { daysToHarvest: plantType.daysToHarvest } : {}),
     };
     // Optimistic update
     setBeds((prev) =>

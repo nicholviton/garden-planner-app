@@ -53,7 +53,6 @@ export default function App() {
     removePlanting,
     movePlanting,
     addPlantingFromType,
-    loadBeds,
   } = useLayout(config);
 
   // Plant Types

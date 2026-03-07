@@ -45,6 +45,9 @@ export function PlantingForm({
   const [width, setWidth] = useState(planting?.width ?? 1);
   const [sowDate, setSowDate] = useState(planting?.sowDate ?? '');
   const [harvestDate, setHarvestDate] = useState(planting?.harvestDate ?? '');
+  const [daysToHarvest, setDaysToHarvest] = useState(
+    planting?.daysToHarvest != null ? String(planting.daysToHarvest) : '',
+  );
   const [errors, setErrors] = useState<string[]>([]);
 
   // Circle: width = height, so max is constrained by both axes
@@ -61,7 +64,7 @@ export function PlantingForm({
     e.preventDefault();
     const errs = validate();
     if (errs.length > 0) { setErrors(errs); return; }
-    onSubmit({ plantName: plantName.trim(), color, width, sowDate, harvestDate });
+    onSubmit({ plantName: plantName.trim(), color, width, sowDate, harvestDate, daysToHarvest });
   }
 
   return (
@@ -139,6 +142,19 @@ export function PlantingForm({
             type="date"
             value={harvestDate}
             onChange={(e) => setHarvestDate(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Days to Harvest <span className="text-gray-400 font-normal">optional</span>
+          </label>
+          <input
+            type="number"
+            min={1}
+            value={daysToHarvest}
+            onChange={(e) => setDaysToHarvest(e.target.value)}
+            placeholder="e.g. 75"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
           />
         </div>
