@@ -5,6 +5,7 @@ import { BedCard } from './BedCard';
 interface BedListProps {
   beds: GardenBed[];
   year: number;
+  isEditing: boolean;
   onEditBed: (bed: GardenBed) => void;
   onDeleteBed: (bed: GardenBed) => void;
   onEmptyCellClick: (bed: GardenBed, row: number, col: number) => void;
@@ -12,7 +13,7 @@ interface BedListProps {
   onMovePlanting: (bed: GardenBed, planting: Planting, newRow: number, newCol: number) => void;
 }
 
-export function BedList({ beds, year, onEditBed, onDeleteBed, onEmptyCellClick, onPlantingClick, onMovePlanting }: BedListProps) {
+export function BedList({ beds, year, isEditing, onEditBed, onDeleteBed, onEmptyCellClick, onPlantingClick, onMovePlanting }: BedListProps) {
   if (beds.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-gray-400">
@@ -30,6 +31,7 @@ export function BedList({ beds, year, onEditBed, onDeleteBed, onEmptyCellClick, 
           key={bed.id}
           bed={bed}
           year={year}
+          isEditing={isEditing}
           onEdit={onEditBed}
           onDelete={onDeleteBed}
           onEmptyCellClick={onEmptyCellClick}

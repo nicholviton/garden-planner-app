@@ -1,4 +1,5 @@
-import { Plus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Loader2, ChevronLeft, ChevronRight, Pencil, Lock } from 'lucide-react';
 import type { GardenBed, Planting } from '@/types/layout';
 import type { PlantType } from '@/types/plantType';
 import { Button } from '@/components/ui/Button';
@@ -38,6 +39,8 @@ export function LayoutView({
   onMovePlanting,
   onQuickPlant,
 }: LayoutViewProps) {
+  const [isEditing, setIsEditing] = useState(false);
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center py-16">
@@ -72,29 +75,56 @@ export function LayoutView({
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
-        <Button
-          variant="primary"
-          size="md"
-          onClick={onAddBed}
-          disabled={isMutating || !hasConfig}
-          loading={isMutating}
-        >
-          <Plus className="w-4 h-4" />
-          Add Bed
-        </Button>
+        <div className="flex items-center gap-2">
+          {isEditing ? (
+            <>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={onAddBed}
+                disabled={isMutating || !hasConfig}
+                loading={isMutating}
+              >
+                <Plus className="w-4 h-4" />
+                Add Bed
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setIsEditing(false)}
+              >
+                <Lock className="w-4 h-4" />
+                Done
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => setIsEditing(true)}
+              disabled={!hasConfig}
+            >
+              <Pencil className="w-4 h-4" />
+              Edit Layout
+            </Button>
+          )}
+        </div>
       </div>
 
-      <QuickPlant
-        plantTypes={plantTypes}
-        beds={beds}
-        isMutating={isMutating}
-        hasConfig={hasConfig}
-        onPlant={onQuickPlant}
-      />
+      {isEditing && (
+        <QuickPlant
+          plantTypes={plantTypes}
+          beds={beds}
+          isMutating={isMutating}
+          hasConfig={hasConfig}
+          onPlant={onQuickPlant}
+        />
+      )}
 
       <BedList
         beds={beds}
         year={selectedYear}
+        isEditing={isEditing}
         onEditBed={onEditBed}
         onDeleteBed={onDeleteBed}
         onEmptyCellClick={onEmptyCellClick}

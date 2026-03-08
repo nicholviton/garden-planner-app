@@ -10,6 +10,7 @@ const DEFAULT_PLANT_COLOR = '#86efac';
 interface BedGridProps {
   bed: GardenBed;
   year: number;
+  readOnly?: boolean;
   onEmptyCellClick: (row: number, col: number) => void;
   onPlantingClick: (planting: Planting) => void;
   onMovePlanting: (planting: Planting, newRow: number, newCol: number) => void;
@@ -33,7 +34,7 @@ function getOccupiedCells(plantings: Planting[]): Set<string> {
 }
 */
 
-export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePlanting }: BedGridProps) {
+export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlantingClick, onMovePlanting }: BedGridProps) {
   const cols = bedGridCols(bed);
   const rows = bedGridRows(bed);
   const yearPlantings = bed.plantings.filter((p) => p.year === year);
@@ -85,20 +86,24 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
     for (let c = 0; c < cols; c++) {
       //if (occupied.has(`${r},${c}`)) continue;
       cells.push(
-        <button
+        <div
           key={`e-${r}-${c}`}
-          type="button"
-          onClick={() => !drag && onEmptyCellClick(r, c)}
-          onDragOver={(e) => onCellDragOver(e, r, c)}
-          onDrop={(e) => onCellDrop(e, r, c)}
+          onDragOver={readOnly ? undefined : (e) => onCellDragOver(e, r, c)}
+          onDrop={readOnly ? undefined : (e) => onCellDrop(e, r, c)}
+          onClick={readOnly ? undefined : () => !drag && onEmptyCellClick(r, c)}
           style={{ gridColumn: c + 1, gridRow: r + 1 }}
-          className="rounded border border-dashed border-gray-300 hover:border-garden-400 hover:bg-garden-50 transition-colors group"
-          title={`Row ${r + 1}, Col ${c + 1}`}
+          className={[
+            'rounded border border-dashed border-gray-200',
+            readOnly ? '' : 'cursor-pointer hover:border-garden-400 hover:bg-garden-50 transition-colors group',
+          ].join(' ')}
+          title={readOnly ? undefined : `Row ${r + 1}, Col ${c + 1}`}
         >
-          <span className="text-[7px] leading-none text-gray-300 group-hover:text-garden-400 flex items-center justify-center w-full h-full select-none">
-            +
-          </span>
-        </button>,
+          {!readOnly && (
+            <span className="text-[7px] leading-none text-gray-300 group-hover:text-garden-400 flex items-center justify-center w-full h-full select-none">
+              +
+            </span>
+          )}
+        </div>,
       );
     }
   }
@@ -108,11 +113,10 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
     const bg = p.color ?? DEFAULT_PLANT_COLOR;
     const isDragging = drag?.planting.id === p.id;
     cells.push(
-      <button
+      <div
         key={`p-${p.id}`}
-        type="button"
-        draggable
-        onDragStart={(e) => {
+        draggable={!readOnly}
+        onDragStart={readOnly ? undefined : (e) => {
           const rect = e.currentTarget.getBoundingClientRect();
           const grabCol = Math.max(0, Math.min(p.width  - 1, Math.floor((e.clientX - rect.left) / CELL_STEP)));
           const grabRow = Math.max(0, Math.min(p.height - 1, Math.floor((e.clientY - rect.top)  / CELL_STEP)));
@@ -126,8 +130,8 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
           // Delay opacity change so ghost is captured at full opacity first
           setTimeout(() => setDrag({ planting: p, grabRow, grabCol }), 0);
         }}
-        onDragEnd={() => { setDrag(null); setHoverCell(null); }}
-        onDragOver={(e) => {
+        onDragEnd={readOnly ? undefined : () => { setDrag(null); setHoverCell(null); }}
+        onDragOver={readOnly ? undefined : (e) => {
           // Allow dragging over other plantings (to reach cells underneath)
           //if (!drag || drag.planting.id === p.id) return;
           e.preventDefault();
@@ -137,32 +141,35 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
           const cellRow = Math.max(0, Math.min(p.height - 1, Math.floor((e.clientY - rect.top)  / CELL_STEP)));
           setHoverCell({ row: p.row + cellRow, col: p.col + cellCol });
         }}
-        onDrop={(e) => {
+        onDrop={readOnly ? undefined : (e) => {
           //if (!drag || drag.planting.id === p.id) return;
           const rect = e.currentTarget.getBoundingClientRect();
           const cellCol = Math.max(0, Math.min(p.width  - 1, Math.floor((e.clientX - rect.left) / CELL_STEP)));
           const cellRow = Math.max(0, Math.min(p.height - 1, Math.floor((e.clientY - rect.top)  / CELL_STEP)));
           onCellDrop(e, p.row + cellRow, p.col + cellCol);
         }}
-        onClick={() => !drag && onPlantingClick(p)}
+        onClick={readOnly ? undefined : () => !drag && onPlantingClick(p)}
         style={{
           gridColumn: `${p.col + 1} / span ${p.width}`,
           gridRow:    `${p.row + 1} / span ${p.height}`,
           backgroundColor: bg,
           opacity: isDragging ? 0.35 : 1,
         }}
-        className="rounded-full border border-white/60 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-90 transition-opacity p-0.5"
+        className={[
+          'rounded-full border border-white/60 flex items-center justify-center overflow-hidden transition-opacity p-0.5',
+          readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing hover:brightness-90',
+        ].join(' ')}
         title={p.plantName}
       >
         <span className="text-[8px] font-semibold text-gray-800 text-center leading-tight w-full truncate px-0.5 select-none pointer-events-none">
           {p.plantName} <br /> Row: {p.row} Col: {p.col}
         </span>
-      </button>,
+      </div>,
     );
   }
 
   // Drop-preview overlay tile (rendered last = on top)
-  if (preview && drag) {
+  if (!readOnly && preview && drag) {
     cells.push(
       <div
         key="preview"
@@ -183,7 +190,7 @@ export function BedGrid({ bed, year, onEmptyCellClick, onPlantingClick, onMovePl
   return (
     <div
       className="overflow-auto"
-      onDragLeave={(e) => {
+      onDragLeave={readOnly ? undefined : (e) => {
         // Only clear preview when cursor fully exits the scroll container
         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
           setHoverCell(null);
