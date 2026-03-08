@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Loader2, AlertCircle } from 'lucide-react';
 import { loadConfig } from '@/lib/githubConfig';
 import type { GitHubConfig } from '@/lib/github';
@@ -78,10 +78,13 @@ export default function App() {
     isLoading: isPlantTypesLoading,
     isMutating: isPlantTypesMutating,
     error: plantTypesError,
-    addPlantType,
-    editPlantType,
-    removePlantType,
+    commitPlantTypes,
+    reloadPlantTypes,
   } = usePlantTypes(config);
+
+  useEffect(() => {
+    if (activeTab === 'plants') reloadPlantTypes();
+  }, [activeTab]);
 
   // The beds shown in LayoutView: draft when editing, real otherwise
   const isEditingLayout = draftBeds !== null;
@@ -302,9 +305,7 @@ export default function App() {
               isLoading={isPlantTypesLoading}
               isMutating={isPlantTypesMutating}
               hasConfig={!!config}
-              onAdd={addPlantType}
-              onEdit={editPlantType}
-              onRemove={removePlantType}
+              commitPlantTypes={commitPlantTypes}
             />
           </main>
         )}

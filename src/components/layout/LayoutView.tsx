@@ -66,7 +66,7 @@ export function LayoutView({
     if (!isEditing) setViewMode('visual');
   }, [isEditing]);
 
-  if (isLoading) {
+  if (isLoading && !isEditing) {
     return (
       <div className="flex-1 flex items-center justify-center py-16">
         <div className="flex flex-col items-center gap-3 text-garden-600">

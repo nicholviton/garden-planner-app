@@ -24,6 +24,11 @@ export async function getPlantTypes(config: GitHubConfig): Promise<PlantType[]> 
   return types;
 }
 
+export async function overwritePlantTypes(config: GitHubConfig, types: PlantType[]): Promise<void> {
+  const { sha } = await readTypes(config);
+  await writeTypes(config, types, sha);
+}
+
 export async function savePlantType(config: GitHubConfig, data: PlantTypeFormData): Promise<PlantType> {
   const { types, sha } = await readTypes(config);
   const pt: PlantType = { id: uuidv4(), ...data, createdAt: new Date().toISOString() };

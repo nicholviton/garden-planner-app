@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { GitHubConfig } from '@/lib/github';
 import type { PlantType, PlantTypeFormData } from '@/types/plantType';
-import { getPlantTypes, savePlantType, updatePlantType, deletePlantType } from '@/lib/plantTypeStorage';
+import { getPlantTypes, savePlantType, updatePlantType, deletePlantType, overwritePlantTypes } from '@/lib/plantTypeStorage';
 
 export function usePlantTypes(config: GitHubConfig | null) {
   const [plantTypes, setPlantTypes] = useState<PlantType[]>([]);
@@ -13,9 +13,14 @@ export function usePlantTypes(config: GitHubConfig | null) {
     setIsLoading(true);
     setError(null);
     try {
-      setPlantTypes(await getPlantTypes(cfg));
+      const loaded = await getPlantTypes(cfg);
+      console.log(`🌱 Loaded ${loaded.length} plant type(s)`);
+      setPlantTypes(loaded);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Failed to load plant types:', msg);
+      setError(msg);
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -23,7 +28,7 @@ export function usePlantTypes(config: GitHubConfig | null) {
 
   useEffect(() => {
     if (!config) { setPlantTypes([]); return; }
-    loadTypes(config);
+    loadTypes(config).catch(() => {});
   }, [config]);
 
   async function addPlantType(data: PlantTypeFormData) {
@@ -67,5 +72,25 @@ export function usePlantTypes(config: GitHubConfig | null) {
     }
   }
 
-  return { plantTypes, isLoading, isMutating, error, addPlantType, editPlantType, removePlantType };
+  async function commitPlantTypes(typesToWrite: PlantType[]): Promise<boolean> {
+    if (!config) return false;
+    setIsMutating(true);
+    setError(null);
+    try {
+      await overwritePlantTypes(config, typesToWrite);
+      await loadTypes(config);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return false;
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
+  function reloadPlantTypes() {
+    if (config) loadTypes(config).catch(() => {});
+  }
+
+  return { plantTypes, isLoading, isMutating, error, addPlantType, editPlantType, removePlantType, commitPlantTypes, reloadPlantTypes };
 }

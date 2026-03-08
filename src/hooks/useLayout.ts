@@ -35,7 +35,10 @@ export function useLayout(config: GitHubConfig | null) {
       });
       setBeds(loaded);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Failed to load garden beds:', msg);
+      setError(msg);
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +49,7 @@ export function useLayout(config: GitHubConfig | null) {
       setBeds([]);
       return;
     }
-    loadBeds(config);
+    loadBeds(config).catch(() => {});
   }, [config]);
 
   async function addBed(formData: BedFormData) {
