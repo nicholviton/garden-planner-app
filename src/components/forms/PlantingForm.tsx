@@ -43,6 +43,8 @@ export function PlantingForm({
   const [plantName, setPlantName] = useState(planting?.plantName ?? '');
   const [color, setColor] = useState(planting?.color ?? DEFAULT_COLOR);
   const [width, setWidth] = useState(planting?.width ?? 1);
+  const [rowVal, setRowVal] = useState(row);
+  const [colVal, setColVal] = useState(col);
   const [sowDate, setSowDate] = useState(planting?.sowDate ?? '');
   const [harvestDate, setHarvestDate] = useState(planting?.harvestDate ?? '');
   const [daysToHarvest, setDaysToHarvest] = useState(
@@ -50,13 +52,18 @@ export function PlantingForm({
   );
   const [errors, setErrors] = useState<string[]>([]);
 
-  // Circle: width = height, so max is constrained by both axes
-  const maxWidth = Math.min(bedGridCols(bed) - col, bedGridRows(bed) - row);
+  const maxCols = bedGridCols(bed);
+  const maxRows = bedGridRows(bed);
+  // Circle: width = height, so max size is constrained by remaining space in both axes
+  const maxWidth = Math.min(maxCols - colVal, maxRows - rowVal);
 
   function validate(): string[] {
     const errs: string[] = [];
     if (!plantName.trim()) errs.push('Plant name is required.');
-    if (width < 1 || width > maxWidth) errs.push(`Size must be between 1 and ${maxWidth}.`);
+    if (rowVal < 0 || rowVal >= maxRows) errs.push(`Row must be between 0 and ${maxRows - 1}.`);
+    if (colVal < 0 || colVal >= maxCols) errs.push(`Column must be between 0 and ${maxCols - 1}.`);
+    const effectiveMax = Math.min(maxCols - colVal, maxRows - rowVal);
+    if (width < 1 || width > effectiveMax) errs.push(`Size must be between 1 and ${effectiveMax}.`);
     return errs;
   }
 
@@ -64,14 +71,12 @@ export function PlantingForm({
     e.preventDefault();
     const errs = validate();
     if (errs.length > 0) { setErrors(errs); return; }
-    onSubmit({ plantName: plantName.trim(), color, width, sowDate, harvestDate, daysToHarvest });
+    onSubmit({ plantName: plantName.trim(), color, width, row: rowVal, col: colVal, sowDate, harvestDate, daysToHarvest });
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <p className="text-xs text-gray-500">
-        Cell: row {row + 1}, col {col + 1} — {year}
-      </p>
+      <p className="text-xs text-gray-500">Year: {year}</p>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -112,18 +117,46 @@ export function PlantingForm({
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Size (cells) <span className="text-gray-400 font-normal">max {maxWidth}</span>
-        </label>
-        <input
-          type="number"
-          min={1}
-          max={maxWidth}
-          value={width}
-          onChange={(e) => { setWidth(Math.max(1, Math.min(maxWidth, parseInt(e.target.value) || 1))); setErrors([]); }}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
-        />
+      <div className="flex gap-4">
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Row <span className="text-gray-400 font-normal">0–{maxRows - 1}</span>
+          </label>
+          <input
+            type="number"
+            min={0}
+            max={maxRows - 1}
+            value={rowVal}
+            onChange={(e) => { setRowVal(Math.max(0, Math.min(maxRows - 1, parseInt(e.target.value) || 0))); setErrors([]); }}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Column <span className="text-gray-400 font-normal">0–{maxCols - 1}</span>
+          </label>
+          <input
+            type="number"
+            min={0}
+            max={maxCols - 1}
+            value={colVal}
+            onChange={(e) => { setColVal(Math.max(0, Math.min(maxCols - 1, parseInt(e.target.value) || 0))); setErrors([]); }}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Size (cells) <span className="text-gray-400 font-normal">max {Math.max(1, maxWidth)}</span>
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={Math.max(1, maxWidth)}
+            value={width}
+            onChange={(e) => { setWidth(Math.max(1, Math.min(Math.max(1, maxWidth), parseInt(e.target.value) || 1))); setErrors([]); }}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+          />
+        </div>
       </div>
 
       <div className="flex gap-4">

@@ -91,12 +91,12 @@ export function useLayout(config: GitHubConfig | null) {
     }
   }
 
-  async function savePlanting(bedId: string, row: number, col: number, data: PlantingFormData) {
+  async function savePlanting(bedId: string, data: PlantingFormData) {
     if (!config) return;
     setIsMutating(true);
     setError(null);
     try {
-      await addPlanting(config, bedId, row, col, selectedYear, data);
+      await addPlanting(config, bedId, selectedYear, data);
       await loadBeds(config);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

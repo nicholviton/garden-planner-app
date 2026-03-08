@@ -1,8 +1,10 @@
-import { Loader2, ChevronLeft, ChevronRight, Pencil, Lock, Plus, ListChecks, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, ChevronLeft, ChevronRight, Pencil, Lock, Plus, ListChecks, X, LayoutGrid, Table } from 'lucide-react';
 import type { GardenBed, Planting } from '@/types/layout';
 import type { PlantType } from '@/types/plantType';
 import { Button } from '@/components/ui/Button';
 import { BedList } from './BedList';
+import { BedTableView } from './BedTableView';
 import { QuickPlant } from './QuickPlant';
 
 interface LayoutViewProps {
@@ -29,6 +31,8 @@ interface LayoutViewProps {
   onPlantingClick: (bed: GardenBed, planting: Planting) => void;
   onMovePlanting: (bed: GardenBed, planting: Planting, newRow: number, newCol: number) => void;
   onQuickPlant: (plantType: PlantType, bedId: string) => void;
+  onDeletePlanting: (bed: GardenBed, planting: Planting) => void;
+  onAddPlantingToBed: (bed: GardenBed) => void;
 }
 
 export function LayoutView({
@@ -53,7 +57,15 @@ export function LayoutView({
   onPlantingClick,
   onMovePlanting,
   onQuickPlant,
+  onDeletePlanting,
+  onAddPlantingToBed,
 }: LayoutViewProps) {
+  const [viewMode, setViewMode] = useState<'visual' | 'table'>('visual');
+
+  useEffect(() => {
+    if (!isEditing) setViewMode('visual');
+  }, [isEditing]);
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center py-16">
@@ -93,6 +105,33 @@ export function LayoutView({
         {/* Edit controls */}
         {isEditing ? (
           <div className="flex items-center gap-2 flex-wrap">
+            {/* View toggle */}
+            <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden text-sm">
+              <button
+                type="button"
+                onClick={() => setViewMode('visual')}
+                className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${
+                  viewMode === 'visual'
+                    ? 'bg-garden-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Visual
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1.5 flex items-center gap-1.5 border-l border-gray-200 transition-colors ${
+                  viewMode === 'table'
+                    ? 'bg-garden-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                Table
+              </button>
+            </div>
             <Button
               variant="primary"
               size="md"
@@ -166,16 +205,26 @@ export function LayoutView({
         />
       )}
 
-      <BedList
-        beds={beds}
-        year={selectedYear}
-        isEditing={isEditing}
-        onEditBed={onEditBed}
-        onDeleteBed={onDeleteBed}
-        onEmptyCellClick={onEmptyCellClick}
-        onPlantingClick={onPlantingClick}
-        onMovePlanting={onMovePlanting}
-      />
+      {viewMode === 'table' && isEditing ? (
+        <BedTableView
+          beds={beds}
+          selectedYear={selectedYear}
+          onEditPlanting={onPlantingClick}
+          onDeletePlanting={onDeletePlanting}
+          onAddPlanting={onAddPlantingToBed}
+        />
+      ) : (
+        <BedList
+          beds={beds}
+          year={selectedYear}
+          isEditing={isEditing}
+          onEditBed={onEditBed}
+          onDeleteBed={onDeleteBed}
+          onEmptyCellClick={onEmptyCellClick}
+          onPlantingClick={onPlantingClick}
+          onMovePlanting={onMovePlanting}
+        />
+      )}
     </div>
   );
 }

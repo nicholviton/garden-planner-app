@@ -39,8 +39,6 @@ export function draftDeleteBed(beds: GardenBed[], id: string): GardenBed[] {
 export function draftAddPlanting(
   beds: GardenBed[],
   bedId: string,
-  row: number,
-  col: number,
   year: number,
   data: PlantingFormData,
 ): GardenBed[] {
@@ -48,8 +46,8 @@ export function draftAddPlanting(
     id: uuidv4(),
     bedId,
     year,
-    row,
-    col,
+    row: data.row,
+    col: data.col,
     width: data.width,
     height: data.width,
     plantName: data.plantName,
@@ -78,6 +76,8 @@ export function draftEditPlanting(
         if (p.id !== plantingId) return p;
         return {
           ...p,
+          row: data.row,
+          col: data.col,
           plantName: data.plantName,
           color: data.color,
           width: data.width,

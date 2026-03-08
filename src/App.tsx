@@ -15,6 +15,7 @@ import {
   draftMovePlanting, draftAddPlantingFromType,
   computeDiff, countChanges,
 } from '@/lib/layoutDraft';
+import { findPlacement } from '@/lib/layoutStorage';
 
 import { Header } from '@/components/layout/Header';
 import { TabBar } from '@/components/layout/TabBar';
@@ -164,7 +165,7 @@ export default function App() {
       );
     } else {
       setDraftBeds((prev) =>
-        prev ? draftAddPlanting(prev, editingPlanting.bed.id, editingPlanting.row, editingPlanting.col, selectedYear, data) : prev,
+        prev ? draftAddPlanting(prev, editingPlanting.bed.id, selectedYear, data) : prev,
       );
     }
     setEditingPlanting(null);
@@ -184,6 +185,15 @@ export default function App() {
 
   function handleQuickPlant(plantType: PlantType, bedId: string) {
     setDraftBeds((prev) => prev ? draftAddPlantingFromType(prev, bedId, plantType) : prev);
+  }
+
+  function handleDeletePlanting(bed: GardenBed, planting: Planting) {
+    setDraftBeds((prev) => prev ? draftDeletePlanting(prev, bed.id, planting.id) : prev);
+  }
+
+  function handleAddPlantingToBed(bed: GardenBed) {
+    const { row, col } = findPlacement(bed, selectedYear, 1);
+    setEditingPlanting({ bed, row, col });
   }
 
   function handleSaveConfig(cfg: GitHubConfig) {
@@ -279,6 +289,8 @@ export default function App() {
               onPlantingClick={(bed, planting) => setEditingPlanting({ bed, planting, row: planting.row, col: planting.col })}
               onMovePlanting={handleMovePlanting}
               onQuickPlant={handleQuickPlant}
+              onDeletePlanting={handleDeletePlanting}
+              onAddPlantingToBed={handleAddPlantingToBed}
             />
           </main>
         )}

@@ -29,6 +29,8 @@ export type PlantingFormData = {
   plantName: string;
   color: string;
   width: number;        // also used as height (circle: height = width)
+  row: number;
+  col: number;
   sowDate: string;
   harvestDate: string;
   daysToHarvest: string; // empty string = not set

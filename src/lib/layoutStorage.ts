@@ -95,8 +95,6 @@ export async function deleteBed(config: GitHubConfig, id: string): Promise<void>
 export async function addPlanting(
   config: GitHubConfig,
   bedId: string,
-  row: number,
-  col: number,
   year: number,
   data: PlantingFormData,
 ): Promise<GardenBed> {
@@ -105,8 +103,8 @@ export async function addPlanting(
     id: uuidv4(),
     bedId,
     year,
-    row,
-    col,
+    row: data.row,
+    col: data.col,
     width: data.width,
     height: data.width,   // circle: height always equals width
     plantName: data.plantName,
