@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Plus, Loader2, ChevronLeft, ChevronRight, Pencil, Lock } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Pencil, Lock, Plus, ListChecks, X } from 'lucide-react';
 import type { GardenBed, Planting } from '@/types/layout';
 import type { PlantType } from '@/types/plantType';
 import { Button } from '@/components/ui/Button';
@@ -14,6 +13,15 @@ interface LayoutViewProps {
   isMutating: boolean;
   hasConfig: boolean;
   plantTypes: PlantType[];
+  // Edit-mode control
+  isEditing: boolean;
+  isSaving: boolean;
+  changeCount: number;
+  onStartEdit: () => void;
+  onDone: () => void;
+  onCancel: () => void;
+  onShowChanges: () => void;
+  // Bed / planting callbacks
   onAddBed: () => void;
   onEditBed: (bed: GardenBed) => void;
   onDeleteBed: (bed: GardenBed) => void;
@@ -31,6 +39,13 @@ export function LayoutView({
   isMutating,
   hasConfig,
   plantTypes,
+  isEditing,
+  isSaving,
+  changeCount,
+  onStartEdit,
+  onDone,
+  onCancel,
+  onShowChanges,
   onAddBed,
   onEditBed,
   onDeleteBed,
@@ -39,8 +54,6 @@ export function LayoutView({
   onMovePlanting,
   onQuickPlant,
 }: LayoutViewProps) {
-  const [isEditing, setIsEditing] = useState(false);
-
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center py-16">
@@ -55,7 +68,8 @@ export function LayoutView({
   return (
     <div className="flex flex-col gap-6">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        {/* Year nav */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -75,41 +89,72 @@ export function LayoutView({
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          {isEditing ? (
-            <>
-              <Button
-                variant="primary"
-                size="md"
-                onClick={onAddBed}
-                disabled={isMutating || !hasConfig}
-                loading={isMutating}
-              >
-                <Plus className="w-4 h-4" />
-                Add Bed
-              </Button>
-              <Button
-                variant="secondary"
-                size="md"
-                onClick={() => setIsEditing(false)}
-              >
-                <Lock className="w-4 h-4" />
-                Done
-              </Button>
-            </>
-          ) : (
+
+        {/* Edit controls */}
+        {isEditing ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={onAddBed}
+              disabled={isMutating}
+            >
+              <Plus className="w-4 h-4" />
+              Add Bed
+            </Button>
             <Button
               variant="secondary"
               size="md"
-              onClick={() => setIsEditing(true)}
-              disabled={!hasConfig}
+              onClick={onShowChanges}
+              disabled={changeCount === 0}
             >
-              <Pencil className="w-4 h-4" />
-              Edit Layout
+              <ListChecks className="w-4 h-4" />
+              Changes
+              {changeCount > 0 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-garden-600 text-white text-xs font-bold">
+                  {changeCount}
+                </span>
+              )}
             </Button>
-          )}
-        </div>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={onCancel}
+              disabled={isSaving}
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={onDone}
+              loading={isSaving}
+            >
+              <Lock className="w-4 h-4" />
+              Done
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={onStartEdit}
+            disabled={!hasConfig}
+          >
+            <Pencil className="w-4 h-4" />
+            Edit Layout
+          </Button>
+        )}
       </div>
+
+      {/* Edit-mode banner */}
+      {isEditing && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-garden-50 border border-garden-200 text-sm text-garden-700">
+          <Pencil className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>Editing — changes are local until you click <strong>Done</strong>.</span>
+        </div>
+      )}
 
       {isEditing && (
         <QuickPlant

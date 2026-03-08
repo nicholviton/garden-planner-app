@@ -24,6 +24,11 @@ export async function getBeds(config: GitHubConfig): Promise<GardenBed[]> {
   return beds;
 }
 
+export async function overwriteBeds(config: GitHubConfig, beds: GardenBed[]): Promise<void> {
+  const { sha } = await readBeds(config);
+  await writeBeds(config, beds, sha);
+}
+
 export async function createBed(config: GitHubConfig, formData: BedFormData): Promise<GardenBed> {
   const { beds, sha } = await readBeds(config);
   const now = new Date().toISOString();

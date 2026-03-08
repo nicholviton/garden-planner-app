@@ -14,6 +14,7 @@ import {
   movePlanting as storageMoveePlanting,
   findPlacement,
   insertPlanting,
+  overwriteBeds,
 } from '@/lib/layoutStorage';
 
 export function useLayout(config: GitHubConfig | null) {
@@ -229,6 +230,22 @@ export function useLayout(config: GitHubConfig | null) {
     }
   }
 
+  async function commitBeds(bedsToWrite: GardenBed[]): Promise<boolean> {
+    if (!config) return false;
+    setIsMutating(true);
+    setError(null);
+    try {
+      await overwriteBeds(config, bedsToWrite);
+      await loadBeds(config);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return false;
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
   return {
     beds,
     isLoading,
@@ -244,6 +261,7 @@ export function useLayout(config: GitHubConfig | null) {
     removePlanting,
     movePlanting,
     addPlantingFromType,
+    commitBeds,
     loadBeds: (cfg: GitHubConfig) => loadBeds(cfg),
   };
 }

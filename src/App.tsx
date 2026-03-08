@@ -7,8 +7,14 @@ import { useLayout } from '@/hooks/useLayout';
 import { usePlantTypes } from '@/hooks/usePlantTypes';
 import { GitHubConfigContext } from '@/contexts/GitHubConfigContext';
 import type { GardenNote } from '@/types/note';
-import type { GardenBed, Planting, PlantingFormData } from '@/types/layout';
+import type { GardenBed, Planting, BedFormData, PlantingFormData } from '@/types/layout';
 import type { PlantType } from '@/types/plantType';
+import {
+  draftAddBed, draftEditBed, draftDeleteBed,
+  draftAddPlanting, draftEditPlanting, draftDeletePlanting,
+  draftMovePlanting, draftAddPlantingFromType,
+  computeDiff, countChanges,
+} from '@/lib/layoutDraft';
 
 import { Header } from '@/components/layout/Header';
 import { TabBar } from '@/components/layout/TabBar';
@@ -21,6 +27,7 @@ import { NoteForm } from '@/components/forms/NoteForm';
 import { BedForm } from '@/components/forms/BedForm';
 import { PlantingForm } from '@/components/forms/PlantingForm';
 import { LayoutView } from '@/components/layout/LayoutView';
+import { ChangesSummary } from '@/components/layout/ChangesSummary';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { PlantTypeList } from '@/components/plants/PlantTypeList';
@@ -37,7 +44,7 @@ export default function App() {
   const [viewingNote, setViewingNote] = useState<GardenNote | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<GardenNote | null>(null);
 
-  // Layout
+  // Layout — real persisted state
   const {
     beds,
     isLoading: isLayoutLoading,
@@ -45,15 +52,24 @@ export default function App() {
     error: layoutError,
     selectedYear,
     setSelectedYear,
-    addBed,
-    editBed,
-    removeBed,
-    savePlanting,
-    editPlanting,
-    removePlanting,
-    movePlanting,
-    addPlantingFromType,
+    commitBeds,
   } = useLayout(config);
+
+  // Layout — edit session draft state
+  const [draftBeds, setDraftBeds] = useState<GardenBed[] | null>(null);
+  const [editSessionOriginal, setEditSessionOriginal] = useState<GardenBed[] | null>(null);
+  const [isShowingChanges, setIsShowingChanges] = useState(false);
+
+  // Modals used during edit mode
+  const [isAddBedOpen, setIsAddBedOpen] = useState(false);
+  const [editingBed, setEditingBed] = useState<GardenBed | null>(null);
+  const [confirmDeleteBed, setConfirmDeleteBed] = useState<GardenBed | null>(null);
+  const [editingPlanting, setEditingPlanting] = useState<{
+    bed: GardenBed;
+    planting?: Planting;
+    row: number;
+    col: number;
+  } | null>(null);
 
   // Plant Types
   const {
@@ -65,17 +81,18 @@ export default function App() {
     editPlantType,
     removePlantType,
   } = usePlantTypes(config);
-  const [isAddBedOpen, setIsAddBedOpen] = useState(false);
-  const [editingBed, setEditingBed] = useState<GardenBed | null>(null);
-  const [confirmDeleteBed, setConfirmDeleteBed] = useState<GardenBed | null>(null);
-  const [editingPlanting, setEditingPlanting] = useState<{
-    bed: GardenBed;
-    planting?: Planting;
-    row: number;
-    col: number;
-  } | null>(null);
 
-  // Notes handlers
+  // The beds shown in LayoutView: draft when editing, real otherwise
+  const isEditingLayout = draftBeds !== null;
+  const displayBeds = isEditingLayout ? draftBeds : beds;
+
+  const diff = isEditingLayout && editSessionOriginal
+    ? computeDiff(editSessionOriginal, draftBeds)
+    : null;
+  const changeCount = diff ? countChanges(diff) : 0;
+
+  // ── Notes handlers ──────────────────────────────────────────────────────────
+
   async function handleAddSubmit(formData: Parameters<typeof addNote>[0]) {
     await addNote(formData);
     setIsAddOpen(false);
@@ -93,38 +110,80 @@ export default function App() {
     setConfirmDelete(null);
   }
 
-  // Layout handlers
-  async function handleAddBedSubmit(data: Parameters<typeof addBed>[0]) {
-    await addBed(data);
+  // ── Layout edit-session handlers ────────────────────────────────────────────
+
+  function handleStartEdit() {
+    const snapshot = JSON.parse(JSON.stringify(beds)) as GardenBed[];
+    setDraftBeds(snapshot);
+    setEditSessionOriginal(snapshot);
+  }
+
+  async function handleDoneEdit() {
+    if (!draftBeds) return;
+    const success = await commitBeds(draftBeds);
+    if (success) {
+      setDraftBeds(null);
+      setEditSessionOriginal(null);
+    }
+    // On failure, stay in edit mode — error shown in banner
+  }
+
+  function handleCancelEdit() {
+    setDraftBeds(null);
+    setEditSessionOriginal(null);
+    setIsAddBedOpen(false);
+    setEditingBed(null);
+    setConfirmDeleteBed(null);
+    setEditingPlanting(null);
+  }
+
+  // ── Layout mutation handlers (all update draft synchronously) ──────────────
+
+  function handleAddBedSubmit(data: BedFormData) {
+    setDraftBeds((prev) => prev ? draftAddBed(prev, data) : prev);
     setIsAddBedOpen(false);
   }
 
-  async function handleEditBedSubmit(data: Parameters<typeof addBed>[0]) {
+  function handleEditBedSubmit(data: BedFormData) {
     if (!editingBed) return;
-    await editBed(editingBed.id, data);
+    setDraftBeds((prev) => prev ? draftEditBed(prev, editingBed.id, data) : prev);
     setEditingBed(null);
   }
 
-  async function handleDeleteBedConfirm() {
+  function handleDeleteBedConfirm() {
     if (!confirmDeleteBed) return;
-    await removeBed(confirmDeleteBed.id);
+    setDraftBeds((prev) => prev ? draftDeleteBed(prev, confirmDeleteBed.id) : prev);
     setConfirmDeleteBed(null);
   }
 
-  async function handlePlantingSubmit(data: PlantingFormData) {
+  function handlePlantingSubmit(data: PlantingFormData) {
     if (!editingPlanting) return;
     if (editingPlanting.planting) {
-      await editPlanting(editingPlanting.bed.id, editingPlanting.planting.id, data);
+      setDraftBeds((prev) =>
+        prev ? draftEditPlanting(prev, editingPlanting.bed.id, editingPlanting.planting!.id, data) : prev,
+      );
     } else {
-      await savePlanting(editingPlanting.bed.id, editingPlanting.row, editingPlanting.col, data);
+      setDraftBeds((prev) =>
+        prev ? draftAddPlanting(prev, editingPlanting.bed.id, editingPlanting.row, editingPlanting.col, selectedYear, data) : prev,
+      );
     }
     setEditingPlanting(null);
   }
 
-  async function handlePlantingDelete() {
+  function handlePlantingDelete() {
     if (!editingPlanting?.planting) return;
-    await removePlanting(editingPlanting.bed.id, editingPlanting.planting.id);
+    setDraftBeds((prev) =>
+      prev ? draftDeletePlanting(prev, editingPlanting.bed.id, editingPlanting.planting!.id) : prev,
+    );
     setEditingPlanting(null);
+  }
+
+  function handleMovePlanting(bed: GardenBed, planting: Planting, newRow: number, newCol: number) {
+    setDraftBeds((prev) => prev ? draftMovePlanting(prev, bed.id, planting.id, newRow, newCol) : prev);
+  }
+
+  function handleQuickPlant(plantType: PlantType, bedId: string) {
+    setDraftBeds((prev) => prev ? draftAddPlantingFromType(prev, bedId, plantType) : prev);
   }
 
   function handleSaveConfig(cfg: GitHubConfig) {
@@ -199,20 +258,27 @@ export default function App() {
         {activeTab === 'layout' && (
           <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
             <LayoutView
-              beds={beds}
+              beds={displayBeds}
               selectedYear={selectedYear}
               onYearChange={setSelectedYear}
               isLoading={isLayoutLoading}
               isMutating={isLayoutMutating}
               hasConfig={!!config}
               plantTypes={plantTypes}
+              isEditing={isEditingLayout}
+              isSaving={isLayoutMutating}
+              changeCount={changeCount}
+              onStartEdit={handleStartEdit}
+              onDone={handleDoneEdit}
+              onCancel={handleCancelEdit}
+              onShowChanges={() => setIsShowingChanges(true)}
               onAddBed={() => setIsAddBedOpen(true)}
               onEditBed={(bed) => setEditingBed(bed)}
               onDeleteBed={(bed) => setConfirmDeleteBed(bed)}
               onEmptyCellClick={(bed, row, col) => setEditingPlanting({ bed, row, col })}
               onPlantingClick={(bed, planting) => setEditingPlanting({ bed, planting, row: planting.row, col: planting.col })}
-              onMovePlanting={(bed, planting, newRow, newCol) => movePlanting(bed.id, planting.id, newRow, newCol)}
-              onQuickPlant={(plantType: PlantType, bedId: string) => addPlantingFromType(bedId, plantType)}
+              onMovePlanting={handleMovePlanting}
+              onQuickPlant={handleQuickPlant}
             />
           </main>
         )}
@@ -276,7 +342,6 @@ export default function App() {
             <BedForm
               onSubmit={handleAddBedSubmit}
               onClose={() => setIsAddBedOpen(false)}
-              loading={isLayoutMutating}
             />
           </Modal>
         )}
@@ -286,7 +351,6 @@ export default function App() {
               bed={editingBed}
               onSubmit={handleEditBedSubmit}
               onClose={() => setEditingBed(null)}
-              loading={isLayoutMutating}
             />
           </Modal>
         )}
@@ -312,9 +376,17 @@ export default function App() {
               onSubmit={handlePlantingSubmit}
               onDelete={handlePlantingDelete}
               onClose={() => setEditingPlanting(null)}
-              loading={isLayoutMutating}
             />
           </Modal>
+        )}
+
+        {/* Changes Summary */}
+        {isShowingChanges && isEditingLayout && editSessionOriginal && (
+          <ChangesSummary
+            original={editSessionOriginal}
+            draft={draftBeds!}
+            onClose={() => setIsShowingChanges(false)}
+          />
         )}
       </div>
     </GitHubConfigContext.Provider>
