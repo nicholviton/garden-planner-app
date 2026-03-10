@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Plus, Pencil, Trash2, Loader2, Lock, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Lock, X, Table, CalendarDays } from 'lucide-react';
 import type { PlantType, PlantTypeFormData } from '@/types/plantType';
+import { getSeedInfo, getTransplantInfo, computeHarvestDate } from '@/types/plantType';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { PlantTypeForm } from '@/components/forms/PlantTypeForm';
+import { PlantTypeTimeline } from './PlantTypeTimeline';
 
 interface PlantTypeListProps {
   plantTypes: PlantType[];
@@ -23,6 +25,7 @@ export function PlantTypeList({
   commitPlantTypes,
 }: PlantTypeListProps) {
   const [draftTypes, setDraftTypes] = useState<PlantType[] | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingType, setEditingType] = useState<PlantType | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<PlantType | null>(null);
@@ -85,7 +88,31 @@ export function PlantTypeList({
       <div className="flex flex-col gap-4">
         {/* Toolbar */}
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-lg font-semibold text-gray-800">Plant Types</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-gray-800">Plant Types</h2>
+            <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden text-sm">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${
+                  viewMode === 'table' ? 'bg-garden-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                Table
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('timeline')}
+                className={`px-3 py-1.5 flex items-center gap-1.5 border-l border-gray-200 transition-colors ${
+                  viewMode === 'timeline' ? 'bg-garden-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                Timeline
+              </button>
+            </div>
+          </div>
           {isEditing ? (
             <div className="flex items-center gap-2">
               <Button variant="primary" size="md" onClick={() => setIsAddOpen(true)} disabled={isMutating}>
@@ -117,7 +144,9 @@ export function PlantTypeList({
           </div>
         )}
 
-        {displayTypes.length === 0 ? (
+        {viewMode === 'timeline' ? (
+          <PlantTypeTimeline plantTypes={displayTypes} />
+        ) : displayTypes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
             <span className="text-4xl">🌱</span>
             <p className="text-sm">
@@ -135,7 +164,17 @@ export function PlantTypeList({
                   <th className="px-3 py-2">Genus / Species</th>
                   <th className="px-3 py-2">Size</th>
                   <th className="px-3 py-2">Year</th>
-                  <th className="px-3 py-2">Days to Harvest</th>
+                  <th className="px-3 py-2">Days</th>
+                  <th className="px-3 py-2">Seed</th>
+                  <th className="px-3 py-2">Transplant</th>
+                  <th className="px-3 py-2">Harvest</th>
+                  {/* <th className="px-3 py-2">SI Planned</th>
+                  <th className="px-3 py-2">SI Actual</th>
+                  <th className="px-3 py-2">SO Planned</th>
+                  <th className="px-3 py-2">SO Actual</th>
+                  <th className="px-3 py-2">Trans. Planned</th>
+                  <th className="px-3 py-2">Trans. Actual</th>
+                  <th className="px-3 py-2">Harvest</th> */}
                   {isEditing && <th className="px-3 py-2">Actions</th>}
                 </tr>
               </thead>
@@ -161,6 +200,43 @@ export function PlantTypeList({
                     <td className="px-3 py-2 text-gray-500">
                       {pt.daysToHarvest != null ? `${pt.daysToHarvest}d` : '—'}
                     </td>
+                    {(() => {
+                      const seedInfo = getSeedInfo(pt);
+                      const transplantInfo = getTransplantInfo(pt);
+                      const harvestDate = computeHarvestDate(pt);
+                      return (
+                        <>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            {seedInfo ? (
+                              <span className={seedInfo.source === 'actual' ? 'font-bold text-gray-800' : 'italic text-gray-400'}>
+                                {seedInfo.date}
+                              </span>
+                            ) : <span className="text-gray-300">—</span>}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            {transplantInfo ? (
+                              <span className={transplantInfo.source === 'actual' ? 'font-bold text-gray-800' : 'italic text-gray-400'}>
+                                {transplantInfo.date}
+                              </span>
+                            ) : <span className="text-gray-300">—</span>}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            {harvestDate ? (
+                              <span className="italic text-gray-500">{harvestDate}</span>
+                            ) : <span className="text-gray-300">—</span>}
+                          </td>
+                        </>
+                      );
+                    })()}
+                    {/* <td className="px-3 py-2 text-gray-500">{pt.seedInsidePlanned ?? '—'}</td>
+                    <td className="px-3 py-2 text-gray-500">{pt.seedInsideActual ?? '—'}</td>
+                    <td className="px-3 py-2 text-gray-500">{pt.seedOutsidePlanned ?? '—'}</td>
+                    <td className="px-3 py-2 text-gray-500">{pt.seedOutsideActual ?? '—'}</td>
+                    <td className="px-3 py-2 text-gray-500">{pt.transplantPlanned ?? '—'}</td>
+                    <td className="px-3 py-2 text-gray-500">{pt.transplantActual ?? '—'}</td>
+                    <td className="px-3 py-2 text-gray-600 font-medium">
+                      {harvestDate ?? '—'}
+                    </td> */}
                     {isEditing && (
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1">
@@ -192,6 +268,7 @@ export function PlantTypeList({
       </div>
 
       {isAddOpen && (
+
         <Modal title="New Plant Type" onClose={() => setIsAddOpen(false)}>
           <PlantTypeForm onSubmit={handleAdd} onClose={() => setIsAddOpen(false)} />
         </Modal>

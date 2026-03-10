@@ -32,6 +32,12 @@ export function PlantTypeForm({ plantType, onSubmit, onClose, loading = false }:
   const [daysToHarvest, setDaysToHarvest] = useState<string>(
     plantType?.daysToHarvest != null ? String(plantType.daysToHarvest) : '',
   );
+  const [seedInsidePlanned, setSeedInsidePlanned] = useState(plantType?.seedInsidePlanned ?? '');
+  const [seedInsideActual, setSeedInsideActual] = useState(plantType?.seedInsideActual ?? '');
+  const [seedOutsidePlanned, setSeedOutsidePlanned] = useState(plantType?.seedOutsidePlanned ?? '');
+  const [seedOutsideActual, setSeedOutsideActual] = useState(plantType?.seedOutsideActual ?? '');
+  const [transplantPlanned, setTransplantPlanned] = useState(plantType?.transplantPlanned ?? '');
+  const [transplantActual, setTransplantActual] = useState(plantType?.transplantActual ?? '');
   const [errors, setErrors] = useState<string[]>([]);
 
   function validate(): string[] {
@@ -54,8 +60,16 @@ export function PlantTypeForm({ plantType, onSubmit, onClose, loading = false }:
       color,
       year,
       daysToHarvest: daysToHarvest.trim() !== '' && !isNaN(parsed) ? parsed : undefined,
+      seedInsidePlanned: seedInsidePlanned || undefined,
+      seedInsideActual: seedInsideActual || undefined,
+      seedOutsidePlanned: seedOutsidePlanned || undefined,
+      seedOutsideActual: seedOutsideActual || undefined,
+      transplantPlanned: transplantPlanned || undefined,
+      transplantActual: transplantActual || undefined,
     });
   }
+
+  const inputCls = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500';
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -68,30 +82,18 @@ export function PlantTypeForm({ plantType, onSubmit, onClose, loading = false }:
           value={plantName}
           onChange={(e) => { setPlantName(e.target.value); setErrors([]); }}
           placeholder="e.g. Tomatoes"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+          className={inputCls}
         />
       </div>
 
       <div className="flex gap-4">
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700 mb-1">Genus</label>
-          <input
-            type="text"
-            value={genus}
-            onChange={(e) => setGenus(e.target.value)}
-            placeholder="e.g. Solanum"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
-          />
+          <input type="text" value={genus} onChange={(e) => setGenus(e.target.value)} placeholder="e.g. Solanum" className={inputCls} />
         </div>
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700 mb-1">Species</label>
-          <input
-            type="text"
-            value={species}
-            onChange={(e) => setSpecies(e.target.value)}
-            placeholder="e.g. lycopersicum"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
-          />
+          <input type="text" value={species} onChange={(e) => setSpecies(e.target.value)} placeholder="e.g. lycopersicum" className={inputCls} />
         </div>
       </div>
 
@@ -103,7 +105,7 @@ export function PlantTypeForm({ plantType, onSubmit, onClose, loading = false }:
             min={1}
             value={width}
             onChange={(e) => { setWidth(Math.max(1, parseInt(e.target.value) || 1)); setErrors([]); }}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+            className={inputCls}
           />
         </div>
         <div className="flex-1">
@@ -112,7 +114,7 @@ export function PlantTypeForm({ plantType, onSubmit, onClose, loading = false }:
             type="number"
             value={year}
             onChange={(e) => setYear(parseInt(e.target.value) || new Date().getFullYear())}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+            className={inputCls}
           />
         </div>
         <div className="flex-1">
@@ -125,8 +127,45 @@ export function PlantTypeForm({ plantType, onSubmit, onClose, loading = false }:
             value={daysToHarvest}
             onChange={(e) => setDaysToHarvest(e.target.value)}
             placeholder="e.g. 75"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+            className={inputCls}
           />
+        </div>
+      </div>
+
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide pt-1">
+        Seeding &amp; Transplant Dates <span className="normal-case font-normal">(optional)</span>
+      </p>
+
+      <div className="flex gap-4">
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Seed Inside Planned</label>
+          <input type="date" value={seedInsidePlanned} onChange={(e) => setSeedInsidePlanned(e.target.value)} className={inputCls} />
+        </div>
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Seed Inside Actual</label>
+          <input type="date" value={seedInsideActual} onChange={(e) => setSeedInsideActual(e.target.value)} className={inputCls} />
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Seed Outside Planned</label>
+          <input type="date" value={seedOutsidePlanned} onChange={(e) => setSeedOutsidePlanned(e.target.value)} className={inputCls} />
+        </div>
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Seed Outside Actual</label>
+          <input type="date" value={seedOutsideActual} onChange={(e) => setSeedOutsideActual(e.target.value)} className={inputCls} />
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Transplant Planned</label>
+          <input type="date" value={transplantPlanned} onChange={(e) => setTransplantPlanned(e.target.value)} className={inputCls} />
+        </div>
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Transplant Actual</label>
+          <input type="date" value={transplantActual} onChange={(e) => setTransplantActual(e.target.value)} className={inputCls} />
         </div>
       </div>
 
