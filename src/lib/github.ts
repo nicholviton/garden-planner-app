@@ -37,11 +37,17 @@ async function checkStatus(res: Response, context: string): Promise<void> {
 export async function getJsonFile<T>(
   config: GitHubConfig,
   path: string,
+  forceLoad: boolean = false,
 ): Promise<{ data: T; sha: string } | null> {
-  const res = await fetch(
-    `${repoUrl(config, path)}?ref=${config.branch}`,
-    { headers: headers(config.pat) },
-  );
+  const res = forceLoad ? await fetch(
+      `${repoUrl(config, path)}?ref=${config.branch}`,
+      { headers: headers(config.pat), cache: 'no-cache' },
+    )
+    : await fetch(
+      `${repoUrl(config, path)}?ref=${config.branch}`,
+      { headers: headers(config.pat) },
+    );
+
   if (res.status === 404) return null;
   await checkStatus(res, path);
   const json = await res.json();

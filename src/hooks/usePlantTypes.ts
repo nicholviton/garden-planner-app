@@ -9,11 +9,11 @@ export function usePlantTypes(config: GitHubConfig | null) {
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadTypes(cfg: GitHubConfig) {
+  async function loadTypes(cfg: GitHubConfig, forceLoad: boolean = false) {
     setIsLoading(true);
     setError(null);
     try {
-      const loaded = await getPlantTypes(cfg);
+      const loaded = await getPlantTypes(cfg, forceLoad);
       console.log(`🌱 Loaded ${loaded.length} plant type(s)`);
       setPlantTypes(loaded);
     } catch (err) {
@@ -78,7 +78,7 @@ export function usePlantTypes(config: GitHubConfig | null) {
     setError(null);
     try {
       await overwritePlantTypes(config, typesToWrite);
-      await loadTypes(config);
+      await loadTypes(config, true);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

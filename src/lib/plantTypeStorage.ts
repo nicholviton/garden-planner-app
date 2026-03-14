@@ -9,8 +9,8 @@ function jsonToBase64(data: unknown): string {
   return btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
 }
 
-async function readTypes(config: GitHubConfig): Promise<{ types: PlantType[]; sha?: string }> {
-  const result = await getJsonFile<PlantType[]>(config, PLANT_TYPES_PATH);
+async function readTypes(config: GitHubConfig, forceLoad: boolean = false): Promise<{ types: PlantType[]; sha?: string }> {
+  const result = await getJsonFile<PlantType[]>(config, PLANT_TYPES_PATH, forceLoad);
   if (!result) return { types: [] };
   return { types: result.data, sha: result.sha };
 }
@@ -19,8 +19,8 @@ async function writeTypes(config: GitHubConfig, types: PlantType[], sha?: string
   await putFile(config, PLANT_TYPES_PATH, jsonToBase64(types), 'Update plant types', sha);
 }
 
-export async function getPlantTypes(config: GitHubConfig): Promise<PlantType[]> {
-  const { types } = await readTypes(config);
+export async function getPlantTypes(config: GitHubConfig, forceLoad: boolean = false): Promise<PlantType[]> {
+  const { types } = await readTypes(config, forceLoad);
   return types;
 }
 
