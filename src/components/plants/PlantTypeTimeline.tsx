@@ -23,6 +23,11 @@ interface PlantTypeTimelineProps {
 
 export function PlantTypeTimeline({ plantTypes }: PlantTypeTimelineProps) {
   const [year, setYear] = useState(new Date().getFullYear());
+  
+  // Calculate today's position on the timeline
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const todayPercent = year === currentYear ? toPercent(today.toISOString().split('T')[0], year) : null;
 
   if (plantTypes.length === 0) {
     return (
@@ -115,6 +120,17 @@ export function PlantTypeTimeline({ plantTypes }: PlantTypeTimelineProps) {
                       {/* Baseline */}
                       <div className="absolute top-1/2 inset-x-0 h-px bg-gray-200" />
 
+                      {/* Today line */}
+                      {todayPercent !== null && (
+                        <div
+                          className="absolute inset-y-0 w-0.5 bg-red-500 shadow-sm z-20"
+                          style={{ left: `${todayPercent}%` }}
+                          title={`Today: ${today.toLocaleDateString()}`}
+                        >
+                          <div className="absolute -top-1 -left-1 w-2 h-2 bg-red-500 rounded-full shadow-sm" />
+                        </div>
+                      )}
+
                       {/* Indoor bar: seed → transplant */}
                       {seedPct !== null && transplantPct !== null && transplantPct > seedPct && (
                         <div
@@ -136,9 +152,9 @@ export function PlantTypeTimeline({ plantTypes }: PlantTypeTimelineProps) {
                       {/* Single bar: seed → harvest (no transplant) */}
                       {seedPct !== null && transplantPct === null && harvestPct !== null && harvestPct > seedPct && (
                         <div
-                          className="absolute top-1/2 -translate-y-1/2 h-3.5 bg-garden-200 rounded-full"
+                          className="absolute top-1/2 -translate-y-1/2 h-3.5 bg-earth-300 rounded-r-full"
                           style={{ left: `${seedPct}%`, width: `${harvestPct - seedPct}%` }}
-                          title={`Growing: ${seedInfo!.date} → ${harvestDateStr}`}
+                          title={`Garden: ${seedInfo!.date} → ${harvestDateStr}`}
                         />
                       )}
 
@@ -196,6 +212,14 @@ export function PlantTypeTimeline({ plantTypes }: PlantTypeTimelineProps) {
 
           {/* Legend */}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-4 pl-40 text-xs text-gray-500">
+            {todayPercent !== null && (
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-0.5 h-4 bg-red-500 relative">
+                  <span className="absolute -top-1 -left-1 w-2 h-2 bg-red-500 rounded-full" />
+                </span>
+                Today
+              </span>
+            )}
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-6 h-3 rounded-sm bg-garden-300" />
               Indoors

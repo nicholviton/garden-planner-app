@@ -40,7 +40,7 @@ export function getTransplantInfo(pt: PlantType): DateInfo | null {
 /** Calculated harvest date: transplantActual (or transplantPlanned) + daysToHarvest days. */
 export function computeHarvestDate(pt: PlantType): string | null {
   if (pt.daysToHarvest == null) return null;
-  const base = pt.transplantActual ?? pt.transplantPlanned ?? null;
+  const base = pt.transplantActual ?? pt.transplantPlanned ?? pt.seedOutsideActual ?? pt.seedOutsidePlanned ?? null;
   if (!base) return null;
   const d = new Date(base);
   d.setDate(d.getDate() + pt.daysToHarvest);
