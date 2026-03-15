@@ -1,19 +1,24 @@
 import { Sprout } from 'lucide-react';
-import type { GardenBed, Planting } from '@/types/layout';
+import type { GardenBed, Planting, Fixture } from '@/types/layout';
 import { BedCard } from './BedCard';
 
 interface BedListProps {
   beds: GardenBed[];
   year: number;
+  selectedBedId: string | null;
+  onSelectedBedChange: (bedId: string) => void;
   isEditing: boolean;
   onEditBed: (bed: GardenBed) => void;
   onDeleteBed: (bed: GardenBed) => void;
   onEmptyCellClick: (bed: GardenBed, row: number, col: number) => void;
   onPlantingClick: (bed: GardenBed, planting: Planting) => void;
   onMovePlanting: (bed: GardenBed, planting: Planting, newRow: number, newCol: number) => void;
+  onAddFixture: (bed: GardenBed) => void;
+  onFixtureClick: (bed: GardenBed, fixture: Fixture) => void;
 }
 
-export function BedList({ beds, year, isEditing, onEditBed, onDeleteBed, onEmptyCellClick, onPlantingClick, onMovePlanting }: BedListProps) {
+export function BedList({ beds, year, selectedBedId, onSelectedBedChange, isEditing, onEditBed, onDeleteBed, onEmptyCellClick, onPlantingClick, onMovePlanting, onAddFixture, onFixtureClick }: BedListProps) {
+
   if (beds.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-gray-400">
@@ -24,21 +29,43 @@ export function BedList({ beds, year, isEditing, onEditBed, onDeleteBed, onEmpty
     );
   }
 
+  const selectedBed = beds.find((b) => b.id === selectedBedId) ?? beds[0];
+
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-      {beds.map((bed) => (
-        <BedCard
-          key={bed.id}
-          bed={bed}
-          year={year}
-          isEditing={isEditing}
-          onEdit={onEditBed}
-          onDelete={onDeleteBed}
-          onEmptyCellClick={onEmptyCellClick}
-          onPlantingClick={onPlantingClick}
-          onMovePlanting={onMovePlanting}
-        />
-      ))}
+    <div className="flex flex-col gap-4">
+      {/* Bed picker */}
+      <div className="flex overflow-x-auto gap-2 pb-1">
+        {beds.map((bed) => (
+          <button
+            key={bed.id}
+            type="button"
+            onClick={() => onSelectedBedChange(bed.id)}
+            className={[
+              'flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+              bed.id === selectedBed.id
+                ? 'bg-garden-600 text-white shadow-sm'
+                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50',
+            ].join(' ')}
+          >
+            {bed.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Selected bed */}
+      <BedCard
+        key={selectedBed.id}
+        bed={selectedBed}
+        year={year}
+        isEditing={isEditing}
+        onEdit={onEditBed}
+        onDelete={onDeleteBed}
+        onEmptyCellClick={onEmptyCellClick}
+        onPlantingClick={onPlantingClick}
+        onMovePlanting={onMovePlanting}
+        onAddFixture={onAddFixture}
+        onFixtureClick={onFixtureClick}
+      />
     </div>
   );
 }

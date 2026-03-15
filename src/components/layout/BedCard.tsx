@@ -1,5 +1,5 @@
-import { Pencil, Trash2 } from 'lucide-react';
-import type { GardenBed, Planting } from '@/types/layout';
+import { Box, Pencil, Trash2 } from 'lucide-react';
+import type { GardenBed, Planting, Fixture } from '@/types/layout';
 import { bedGridCols, bedGridRows } from '@/types/layout';
 import { BedGrid } from './BedGrid';
 
@@ -12,22 +12,34 @@ interface BedCardProps {
   onEmptyCellClick: (bed: GardenBed, row: number, col: number) => void;
   onPlantingClick: (bed: GardenBed, planting: Planting) => void;
   onMovePlanting: (bed: GardenBed, planting: Planting, newRow: number, newCol: number) => void;
+  onAddFixture: (bed: GardenBed) => void;
+  onFixtureClick: (bed: GardenBed, fixture: Fixture) => void;
 }
 
-export function BedCard({ bed, year, isEditing, onEdit, onDelete, onEmptyCellClick, onPlantingClick, onMovePlanting }: BedCardProps) {
+export function BedCard({ bed, year, isEditing, onEdit, onDelete, onEmptyCellClick, onPlantingClick, onMovePlanting, onAddFixture, onFixtureClick }: BedCardProps) {
   const yearCount = bed.plantings.filter((p) => p.year === year).length;
+  const fixtureCount = (bed.fixtures ?? []).length;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-gray rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div>
           <h3 className="font-semibold text-gray-800">{bed.name}</h3>
           <p className="text-xs text-gray-500">
             {bed.widthIn}" × {bed.heightIn}" · {bedGridCols(bed)} × {bedGridRows(bed)} grid · {yearCount} planting{yearCount !== 1 ? 's' : ''} in {year}
+            {fixtureCount > 0 && ` · ${fixtureCount} fixture${fixtureCount !== 1 ? 's' : ''}`}
           </p>
         </div>
         {isEditing && (
           <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => onAddFixture(bed)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              title="Add fixture"
+            >
+              <Box className="w-4 h-4" />
+            </button>
             <button
               type="button"
               onClick={() => onEdit(bed)}
@@ -55,6 +67,7 @@ export function BedCard({ bed, year, isEditing, onEdit, onDelete, onEmptyCellCli
           onEmptyCellClick={(row, col) => onEmptyCellClick(bed, row, col)}
           onPlantingClick={(planting) => onPlantingClick(bed, planting)}
           onMovePlanting={(planting, newRow, newCol) => onMovePlanting(bed, planting, newRow, newCol)}
+          onFixtureClick={(fixture) => onFixtureClick(bed, fixture)}
         />
       </div>
     </div>

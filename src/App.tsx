@@ -7,12 +7,13 @@ import { useLayout } from '@/hooks/useLayout';
 import { usePlantTypes } from '@/hooks/usePlantTypes';
 import { GitHubConfigContext } from '@/contexts/GitHubConfigContext';
 import type { GardenNote } from '@/types/note';
-import type { GardenBed, Planting, BedFormData, PlantingFormData } from '@/types/layout';
+import type { GardenBed, Planting, BedFormData, PlantingFormData, Fixture, FixtureFormData } from '@/types/layout';
 import type { PlantType } from '@/types/plantType';
 import {
   draftAddBed, draftEditBed, draftDeleteBed,
   draftAddPlanting, draftEditPlanting, draftDeletePlanting,
   draftMovePlanting, draftAddPlantingFromType,
+  draftAddFixture, draftEditFixture, draftDeleteFixture,
   computeDiff, countChanges,
 } from '@/lib/layoutDraft';
 import { findPlacement } from '@/lib/layoutStorage';
@@ -27,6 +28,7 @@ import { Modal } from '@/components/ui/Modal';
 import { NoteForm } from '@/components/forms/NoteForm';
 import { BedForm } from '@/components/forms/BedForm';
 import { PlantingForm } from '@/components/forms/PlantingForm';
+import { FixtureForm } from '@/components/forms/FixtureForm';
 import { LayoutView } from '@/components/layout/LayoutView';
 import { ChangesSummary } from '@/components/layout/ChangesSummary';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -70,6 +72,10 @@ export default function App() {
     planting?: Planting;
     row: number;
     col: number;
+  } | null>(null);
+  const [editingFixture, setEditingFixture] = useState<{
+    bed: GardenBed;
+    fixture?: Fixture;
   } | null>(null);
 
   // Plant Types
@@ -139,6 +145,7 @@ export default function App() {
     setEditingBed(null);
     setConfirmDeleteBed(null);
     setEditingPlanting(null);
+    setEditingFixture(null);
   }
 
   // ── Layout mutation handlers (all update draft synchronously) ──────────────
@@ -199,6 +206,36 @@ export default function App() {
     setEditingPlanting({ bed, row, col });
   }
 
+  function handleFixtureSubmit(data: FixtureFormData) {
+    if (!editingFixture) return;
+    if (editingFixture.fixture) {
+      setDraftBeds((prev) =>
+        prev ? draftEditFixture(prev, editingFixture.bed.id, editingFixture.fixture!.id, data) : prev,
+      );
+    } else {
+      setDraftBeds((prev) =>
+        prev ? draftAddFixture(prev, editingFixture.bed.id, data) : prev,
+      );
+    }
+    setEditingFixture(null);
+  }
+
+  function handleFixtureDelete() {
+    if (!editingFixture?.fixture) return;
+    setDraftBeds((prev) =>
+      prev ? draftDeleteFixture(prev, editingFixture.bed.id, editingFixture.fixture!.id) : prev,
+    );
+    setEditingFixture(null);
+  }
+
+  function handleAddFixtureToBed(bed: GardenBed) {
+    setEditingFixture({ bed });
+  }
+
+  function handleFixtureClick(bed: GardenBed, fixture: Fixture) {
+    setEditingFixture({ bed, fixture });
+  }
+
   function handleSaveConfig(cfg: GitHubConfig) {
     setConfig(cfg);
     setIsSettingsOpen(false);
@@ -233,7 +270,7 @@ export default function App() {
               </div>
             </div>
           ) : (
-            <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
+            <main className="flex-1 max-w-95/100 mx-auto w-full px-4 py-6">
               <div className="flex items-center gap-3 mb-6">
                 <SearchBar
                   value={searchQuery}
@@ -269,7 +306,7 @@ export default function App() {
         )}
 
         {activeTab === 'layout' && (
-          <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
+          <main className="flex-1 max-w-95/100 mx-auto w-full px-4 py-6">
             <LayoutView
               beds={displayBeds}
               selectedYear={selectedYear}
@@ -294,6 +331,8 @@ export default function App() {
               onQuickPlant={handleQuickPlant}
               onDeletePlanting={handleDeletePlanting}
               onAddPlantingToBed={handleAddPlantingToBed}
+              onAddFixtureToBed={handleAddFixtureToBed}
+              onFixtureClick={handleFixtureClick}
             />
           </main>
         )}
@@ -389,6 +428,23 @@ export default function App() {
               onSubmit={handlePlantingSubmit}
               onDelete={handlePlantingDelete}
               onClose={() => setEditingPlanting(null)}
+            />
+          </Modal>
+        )}
+
+        {editingFixture && (
+          <Modal
+            title={editingFixture.fixture ? 'Edit Fixture' : 'Add Fixture'}
+            onClose={() => setEditingFixture(null)}
+          >
+            <FixtureForm
+              fixture={editingFixture.fixture}
+              row={editingFixture.fixture?.row ?? 0}
+              col={editingFixture.fixture?.col ?? 0}
+              bed={editingFixture.bed}
+              onSubmit={handleFixtureSubmit}
+              onDelete={editingFixture.fixture ? handleFixtureDelete : undefined}
+              onClose={() => setEditingFixture(null)}
             />
           </Modal>
         )}

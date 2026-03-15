@@ -1,3 +1,28 @@
+export type FixtureCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
+export type FixtureShape =
+  | { kind: 'circle'; width: number }
+  | { kind: 'rectangle'; width: number; height: number }
+  | { kind: 'right-triangle'; corner: FixtureCorner; width: number; height: number };
+
+export interface Fixture {
+  id: string;
+  bedId: string;
+  name: string;
+  color: string;
+  row: number;
+  col: number;
+  shape: FixtureShape;
+}
+
+export type FixtureFormData = Omit<Fixture, 'id' | 'bedId'>;
+
+/** Bounding box (in grid cells) of any fixture shape. */
+export function fixtureBounds(shape: FixtureShape): { width: number; height: number } {
+  if (shape.kind === 'circle') return { width: shape.width, height: shape.width };
+  return { width: shape.width, height: shape.height };
+}
+
 export interface Planting {
   id: string;
   bedId: string;
@@ -19,6 +44,7 @@ export interface GardenBed {
   widthIn: number;   // physical width in inches
   heightIn: number;  // physical height in inches
   plantings: Planting[];   // all years combined
+  fixtures?: Fixture[];    // permanent features (walls, rocks, etc.) — year-independent
   createdAt: string;
   updatedAt: string;
 }

@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import type { GardenBed, Planting } from '@/types/layout';
-import { bedGridCols, bedGridRows } from '@/types/layout';
+import type { GardenBed, Planting, Fixture, FixtureCorner } from '@/types/layout';
+import { bedGridCols, bedGridRows, fixtureBounds } from '@/types/layout';
+
+function triangleClipPath(corner: FixtureCorner): string {
+  switch (corner) {
+    case 'top-left':     return 'polygon(0 0, 100% 0, 0 100%)';
+    case 'top-right':    return 'polygon(0 0, 100% 0, 100% 100%)';
+    case 'bottom-left':  return 'polygon(0 0, 0 100%, 100% 100%)';
+    case 'bottom-right': return 'polygon(100% 0, 0 100%, 100% 100%)';
+  }
+}
 
 const CELL_PX = 10;
 const CELL_STEP = CELL_PX + 1; // cell + 1px gap
@@ -14,6 +23,7 @@ interface BedGridProps {
   onEmptyCellClick: (row: number, col: number) => void;
   onPlantingClick: (planting: Planting) => void;
   onMovePlanting: (planting: Planting, newRow: number, newCol: number) => void;
+  onFixtureClick?: (fixture: Fixture) => void;
 }
 
 interface DragState {
@@ -34,7 +44,7 @@ function getOccupiedCells(plantings: Planting[]): Set<string> {
 }
 */
 
-export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlantingClick, onMovePlanting }: BedGridProps) {
+export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlantingClick, onMovePlanting, onFixtureClick }: BedGridProps) {
   const cols = bedGridCols(bed);
   const rows = bedGridRows(bed);
   const yearPlantings = bed.plantings.filter((p) => p.year === year);
@@ -106,6 +116,36 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
         </div>,
       );
     }
+  }
+
+  // Fixture tiles (permanent, not year-filtered)
+  for (const f of bed.fixtures ?? []) {
+    const bounds = fixtureBounds(f.shape);
+    const isCircle = f.shape.kind === 'circle';
+    const isTriangle = f.shape.kind === 'right-triangle';
+    cells.push(
+      <div
+        key={`f-${f.id}`}
+        onClick={readOnly ? undefined : () => onFixtureClick?.(f)}
+        style={{
+          gridColumn: `${f.col + 1} / span ${bounds.width}`,
+          gridRow: `${f.row + 1} / span ${bounds.height}`,
+          backgroundColor: f.color,
+          borderRadius: isCircle ? '50%' : undefined,
+          clipPath: isTriangle && f.shape.kind === 'right-triangle' ? triangleClipPath(f.shape.corner) : undefined,
+          zIndex: 5,
+        }}
+        className={[
+          'flex items-center justify-center overflow-hidden border border-white/40',
+          readOnly || !onFixtureClick ? 'cursor-default' : 'cursor-pointer hover:brightness-90',
+        ].join(' ')}
+        title={f.name}
+      >
+        <span className="text-[7px] font-semibold text-white/90 text-center leading-tight truncate px-0.5 select-none pointer-events-none drop-shadow-sm">
+          {f.name}
+        </span>
+      </div>,
+    );
   }
 
   // Planting tiles

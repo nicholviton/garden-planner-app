@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2, ChevronLeft, ChevronRight, Pencil, Lock, Plus, ListChecks, X, LayoutGrid, Table } from 'lucide-react';
-import type { GardenBed, Planting } from '@/types/layout';
+import type { GardenBed, Planting, Fixture } from '@/types/layout';
 import type { PlantType } from '@/types/plantType';
 import { Button } from '@/components/ui/Button';
 import { BedList } from './BedList';
@@ -33,6 +33,8 @@ interface LayoutViewProps {
   onQuickPlant: (plantType: PlantType, bedId: string) => void;
   onDeletePlanting: (bed: GardenBed, planting: Planting) => void;
   onAddPlantingToBed: (bed: GardenBed) => void;
+  onAddFixtureToBed: (bed: GardenBed) => void;
+  onFixtureClick: (bed: GardenBed, fixture: Fixture) => void;
 }
 
 export function LayoutView({
@@ -59,12 +61,28 @@ export function LayoutView({
   onQuickPlant,
   onDeletePlanting,
   onAddPlantingToBed,
+  onAddFixtureToBed,
+  onFixtureClick,
 }: LayoutViewProps) {
   const [viewMode, setViewMode] = useState<'visual' | 'table'>('visual');
+  const [selectedBedId, setSelectedBedId] = useState<string | null>(
+    beds.length > 0 ? beds[0].id : null,
+  );
 
   useEffect(() => {
     if (!isEditing) setViewMode('visual');
   }, [isEditing]);
+
+  // Update selected bed when beds change
+  useEffect(() => {
+    if (beds.length === 0) {
+      setSelectedBedId(null);
+      return;
+    }
+    if (!beds.find((b) => b.id === selectedBedId)) {
+      setSelectedBedId(beds[0].id);
+    }
+  }, [beds, selectedBedId]);
 
   if (isLoading && !isEditing) {
     return (
@@ -198,7 +216,8 @@ export function LayoutView({
       {isEditing && (
         <QuickPlant
           plantTypes={plantTypes}
-          beds={beds}
+          selectedBedId={selectedBedId}
+          selectedBedName={beds.find(b => b.id === selectedBedId)?.name}
           isMutating={isMutating}
           hasConfig={hasConfig}
           onPlant={onQuickPlant}
@@ -217,12 +236,16 @@ export function LayoutView({
         <BedList
           beds={beds}
           year={selectedYear}
+          selectedBedId={selectedBedId}
+          onSelectedBedChange={setSelectedBedId}
           isEditing={isEditing}
           onEditBed={onEditBed}
           onDeleteBed={onDeleteBed}
           onEmptyCellClick={onEmptyCellClick}
           onPlantingClick={onPlantingClick}
           onMovePlanting={onMovePlanting}
+          onAddFixture={onAddFixtureToBed}
+          onFixtureClick={onFixtureClick}
         />
       )}
     </div>

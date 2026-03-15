@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { GardenBed, Planting, BedFormData, PlantingFormData } from '@/types/layout';
+import type { GardenBed, Planting, BedFormData, PlantingFormData, Fixture, FixtureFormData } from '@/types/layout';
 import type { PlantType } from '@/types/plantType';
 import { findPlacement } from '@/lib/layoutStorage';
 
@@ -138,6 +138,43 @@ export function draftAddPlantingFromType(
   };
   return beds.map((b) =>
     b.id !== bedId ? b : { ...b, plantings: [...b.plantings, planting], updatedAt: new Date().toISOString() },
+  );
+}
+
+// ── Fixture draft mutations ───────────────────────────────────────────────────
+
+export function draftAddFixture(beds: GardenBed[], bedId: string, data: FixtureFormData): GardenBed[] {
+  const fixture: Fixture = { id: uuidv4(), bedId, ...data };
+  return beds.map((b) =>
+    b.id !== bedId
+      ? b
+      : { ...b, fixtures: [...(b.fixtures ?? []), fixture], updatedAt: new Date().toISOString() },
+  );
+}
+
+export function draftEditFixture(
+  beds: GardenBed[],
+  bedId: string,
+  fixtureId: string,
+  data: FixtureFormData,
+): GardenBed[] {
+  return beds.map((b) => {
+    if (b.id !== bedId) return b;
+    return {
+      ...b,
+      updatedAt: new Date().toISOString(),
+      fixtures: (b.fixtures ?? []).map((f) =>
+        f.id !== fixtureId ? f : { ...f, ...data },
+      ),
+    };
+  });
+}
+
+export function draftDeleteFixture(beds: GardenBed[], bedId: string, fixtureId: string): GardenBed[] {
+  return beds.map((b) =>
+    b.id !== bedId
+      ? b
+      : { ...b, fixtures: (b.fixtures ?? []).filter((f) => f.id !== fixtureId), updatedAt: new Date().toISOString() },
   );
 }
 

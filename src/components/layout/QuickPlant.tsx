@@ -6,17 +6,17 @@ import { Button } from '@/components/ui/Button';
 
 interface QuickPlantProps {
   plantTypes: PlantType[];
-  beds: GardenBed[];
+  selectedBedId: string | null;
+  selectedBedName?: string;
   isMutating: boolean;
   hasConfig: boolean;
   onPlant: (plantType: PlantType, bedId: string) => void;
 }
 
-export function QuickPlant({ plantTypes, beds, isMutating, hasConfig, onPlant }: QuickPlantProps) {
+export function QuickPlant({ plantTypes, selectedBedId, selectedBedName, isMutating, hasConfig, onPlant }: QuickPlantProps) {
   const [selectedTypeId, setSelectedTypeId] = useState('');
-  const [selectedBedId, setSelectedBedId] = useState('');
 
-  if (plantTypes.length === 0 || beds.length === 0) return null;
+  if (plantTypes.length === 0 || !selectedBedId) return null;
 
   const selectedType = plantTypes.find((t) => t.id === selectedTypeId) ?? null;
   const canPlant = !!selectedType && !!selectedBedId && !isMutating && hasConfig;
@@ -34,7 +34,7 @@ export function QuickPlant({ plantTypes, beds, isMutating, hasConfig, onPlant }:
       <select
         value={selectedTypeId}
         onChange={(e) => setSelectedTypeId(e.target.value)}
-        className="flex-1 min-w-[140px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+        className="flex-1 min-w-[140px] max-w-[300px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
       >
         <option value="">Select plant type…</option>
         {plantTypes.map((t) => (
@@ -44,18 +44,12 @@ export function QuickPlant({ plantTypes, beds, isMutating, hasConfig, onPlant }:
         ))}
       </select>
 
-      <span className="text-sm text-gray-400 flex-shrink-0">→</span>
+      {/*<span className="text-sm text-gray-400 flex-shrink-0">→</span>*/}
 
-      <select
-        value={selectedBedId}
-        onChange={(e) => setSelectedBedId(e.target.value)}
-        className="flex-1 min-w-[140px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
-      >
-        <option value="">Select bed…</option>
-        {beds.map((b) => (
-          <option key={b.id} value={b.id}>{b.name}</option>
-        ))}
-      </select>
+      {/*<span className="flex-1 min-w-[140px] px-3 py-1.5 text-sm font-medium text-garden-700 bg-garden-50 border border-garden-200 rounded-lg">
+        {selectedBedName || 'Selected bed'}
+      </span>*/}
+      
 
       <Button
         variant="primary"
