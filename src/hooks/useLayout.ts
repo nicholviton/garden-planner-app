@@ -24,11 +24,11 @@ export function useLayout(config: GitHubConfig | null) {
   const [error, setError] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  async function loadBeds(cfg: GitHubConfig) {
+  async function loadBeds(cfg: GitHubConfig, forceLoad: boolean = false) {
     setIsLoading(true);
     setError(null);
     try {
-      const loaded = await getBeds(cfg);
+      const loaded = await getBeds(cfg, forceLoad);
       console.log(`📊 Loaded ${loaded.length} beds:`);
       loaded.forEach((bed, index) => {
         console.log(`  ${index + 1}. "${bed.name}": ${bed.plantings.length} plantings`);
@@ -239,7 +239,7 @@ export function useLayout(config: GitHubConfig | null) {
     setError(null);
     try {
       await overwriteBeds(config, bedsToWrite);
-      await loadBeds(config);
+      await loadBeds(config, true);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

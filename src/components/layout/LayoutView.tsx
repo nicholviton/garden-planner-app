@@ -217,7 +217,6 @@ export function LayoutView({
         <QuickPlant
           plantTypes={plantTypes}
           selectedBedId={selectedBedId}
-          selectedBedName={beds.find(b => b.id === selectedBedId)?.name}
           isMutating={isMutating}
           hasConfig={hasConfig}
           onPlant={onQuickPlant}

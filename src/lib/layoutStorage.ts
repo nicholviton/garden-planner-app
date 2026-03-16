@@ -9,8 +9,8 @@ function jsonToBase64(data: unknown): string {
   return btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
 }
 
-async function readBeds(config: GitHubConfig): Promise<{ beds: GardenBed[]; sha?: string }> {
-  const result = await getJsonFile<GardenBed[]>(config, LAYOUT_PATH);
+async function readBeds(config: GitHubConfig, forceLoad: boolean = false): Promise<{ beds: GardenBed[]; sha?: string }> {
+  const result = await getJsonFile<GardenBed[]>(config, LAYOUT_PATH, forceLoad);
   if (!result) return { beds: [] };
   return { beds: result.data, sha: result.sha };
 }
@@ -19,8 +19,8 @@ async function writeBeds(config: GitHubConfig, beds: GardenBed[], sha?: string):
   await putFile(config, LAYOUT_PATH, jsonToBase64(beds), 'Update garden layout', sha);
 }
 
-export async function getBeds(config: GitHubConfig): Promise<GardenBed[]> {
-  const { beds } = await readBeds(config);
+export async function getBeds(config: GitHubConfig, forceLoad: boolean = false): Promise<GardenBed[]> {
+  const { beds } = await readBeds(config, forceLoad);
   return beds;
 }
 

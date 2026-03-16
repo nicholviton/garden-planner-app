@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import { Sprout } from 'lucide-react';
 import type { PlantType } from '@/types/plantType';
-import type { GardenBed } from '@/types/layout';
 import { Button } from '@/components/ui/Button';
 
 interface QuickPlantProps {
   plantTypes: PlantType[];
   selectedBedId: string | null;
-  selectedBedName?: string;
   isMutating: boolean;
   hasConfig: boolean;
   onPlant: (plantType: PlantType, bedId: string) => void;
 }
 
-export function QuickPlant({ plantTypes, selectedBedId, selectedBedName, isMutating, hasConfig, onPlant }: QuickPlantProps) {
+export function QuickPlant({ plantTypes, selectedBedId, isMutating, hasConfig, onPlant }: QuickPlantProps) {
   const [selectedTypeId, setSelectedTypeId] = useState('');
 
   if (plantTypes.length === 0 || !selectedBedId) return null;
@@ -43,13 +41,6 @@ export function QuickPlant({ plantTypes, selectedBedId, selectedBedName, isMutat
           </option>
         ))}
       </select>
-
-      {/*<span className="text-sm text-gray-400 flex-shrink-0">→</span>*/}
-
-      {/*<span className="flex-1 min-w-[140px] px-3 py-1.5 text-sm font-medium text-garden-700 bg-garden-50 border border-garden-200 rounded-lg">
-        {selectedBedName || 'Selected bed'}
-      </span>*/}
-      
 
       <Button
         variant="primary"
