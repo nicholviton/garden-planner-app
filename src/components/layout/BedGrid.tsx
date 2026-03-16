@@ -141,9 +141,9 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
         ].join(' ')}
         title={f.name}
       >
-        <span className="text-[7px] font-semibold text-white/90 text-center leading-tight truncate px-0.5 select-none pointer-events-none drop-shadow-sm">
+        {/*<span className="text-[7px] font-semibold text-white/90 text-center leading-tight truncate px-0.5 select-none pointer-events-none drop-shadow-sm">
           {f.name}
-        </span>
+        </span>*/}
       </div>,
     );
   }
@@ -194,6 +194,7 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
           gridRow:    `${p.row + 1} / span ${p.height}`,
           backgroundColor: bg,
           opacity: isDragging ? 0.35 : 1,
+          zIndex: 6,
         }}
         className={[
           'rounded-full border border-white/60 flex items-center justify-center overflow-hidden transition-opacity p-0.5',
