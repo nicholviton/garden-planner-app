@@ -62,7 +62,7 @@ export function FixtureForm({
 
   function buildShape(): FixtureShape {
     if (shapeKind === 'circle') return { kind: 'circle', width };
-    if (shapeKind === 'rectangle') return { kind: 'rectangle', width, height, angle: angle !== 0 ? angle : undefined };
+    if (shapeKind === 'rectangle') return { kind: 'rectangle', width, height, angle };
     return { kind: 'right-triangle', corner, width, height };
   }
 

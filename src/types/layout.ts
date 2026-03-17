@@ -2,7 +2,7 @@ export type FixtureCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-r
 
 export type FixtureShape =
   | { kind: 'circle'; width: number }
-  | { kind: 'rectangle'; width: number; height: number; angle?: number }
+  | { kind: 'rectangle'; width: number; height: number; angle: number }
   | { kind: 'right-triangle'; corner: FixtureCorner; width: number; height: number };
 
 export interface Fixture {
