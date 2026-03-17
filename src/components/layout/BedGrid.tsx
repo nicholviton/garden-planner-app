@@ -123,6 +123,9 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
     const bounds = fixtureBounds(f.shape);
     const isCircle = f.shape.kind === 'circle';
     const isTriangle = f.shape.kind === 'right-triangle';
+    const isRectangle = f.shape.kind === 'rectangle';
+    const hasAngle = isRectangle && f.shape.angle !== undefined && f.shape.angle !== 0;
+    
     cells.push(
       <div
         key={`f-${f.id}`}
@@ -133,6 +136,7 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
           backgroundColor: f.color,
           borderRadius: isCircle ? '50%' : undefined,
           clipPath: isTriangle && f.shape.kind === 'right-triangle' ? triangleClipPath(f.shape.corner) : undefined,
+          transform: hasAngle ? `rotate(${f.shape.angle}deg)` : undefined,
           zIndex: 5,
         }}
         className={[

@@ -52,6 +52,9 @@ export function FixtureForm({
   const [corner, setCorner] = useState<FixtureCorner>(
     fixture?.shape.kind === 'right-triangle' ? fixture.shape.corner : 'top-left',
   );
+  const [angle, setAngle] = useState(
+    fixture?.shape.kind === 'rectangle' ? fixture.shape.angle ?? 0 : 0,
+  );
   const [errors, setErrors] = useState<string[]>([]);
 
   const maxW = Math.max(1, maxCols - colVal);
@@ -59,7 +62,7 @@ export function FixtureForm({
 
   function buildShape(): FixtureShape {
     if (shapeKind === 'circle') return { kind: 'circle', width };
-    if (shapeKind === 'rectangle') return { kind: 'rectangle', width, height };
+    if (shapeKind === 'rectangle') return { kind: 'rectangle', width, height, angle: angle !== 0 ? angle : undefined };
     return { kind: 'right-triangle', corner, width, height };
   }
 
@@ -176,6 +179,25 @@ export function FixtureForm({
           </div>
         )}
       </div>
+
+      {/* Angle (rectangle only) */}
+      {shapeKind === 'rectangle' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Angle <span className="text-gray-400 font-normal">0–359°</span>
+          </label>
+          <input
+            type="number"
+            min={0}
+            max={359}
+            value={angle}
+            onChange={(e) => { setAngle(Math.max(0, Math.min(359, parseInt(e.target.value) || 0))); setErrors([]); }}
+            placeholder="0"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">Rotation in degrees (0 = no rotation)</p>
+        </div>
+      )}
 
       {/* Corner (right-triangle only) */}
       {shapeKind === 'right-triangle' && (
