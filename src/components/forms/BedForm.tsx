@@ -50,10 +50,10 @@ export function BedForm({ bed, onSubmit, onClose, loading = false }: BedFormProp
           <input
             type="number"
             min={CELL_SIZE_IN}
-            max={360}
+            max={500}
             step={1}
             value={widthIn}
-            onChange={(e) => setWidthIn(Math.max(CELL_SIZE_IN, Math.min(360, parseInt(e.target.value) || CELL_SIZE_IN)))}
+            onChange={(e) => setWidthIn(Math.max(CELL_SIZE_IN, Math.min(500, parseInt(e.target.value) || CELL_SIZE_IN)))}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
           />
         </div>
@@ -62,10 +62,10 @@ export function BedForm({ bed, onSubmit, onClose, loading = false }: BedFormProp
           <input
             type="number"
             min={CELL_SIZE_IN}
-            max={360}
+            max={500}
             step={1}
             value={heightIn}
-            onChange={(e) => setHeightIn(Math.max(CELL_SIZE_IN, Math.min(360, parseInt(e.target.value) || CELL_SIZE_IN)))}
+            onChange={(e) => setHeightIn(Math.max(CELL_SIZE_IN, Math.min(500, parseInt(e.target.value) || CELL_SIZE_IN)))}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
           />
         </div>
