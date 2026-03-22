@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, ChevronLeft, ChevronRight, Pencil, Lock, Plus, ListChecks, X, LayoutGrid, Table } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Pencil, Lock, Plus, ListChecks, X, LayoutGrid, Table, ZoomIn, ZoomOut } from 'lucide-react';
 import type { GardenBed, Planting, Fixture } from '@/types/layout';
 import type { PlantType } from '@/types/plantType';
 import { Button } from '@/components/ui/Button';
@@ -64,6 +64,10 @@ export function LayoutView({
   onAddFixtureToBed,
   onFixtureClick,
 }: LayoutViewProps) {
+  const ZOOM_LEVELS = [1, 2, 3, 4, 5, 6] as const;
+  const [zoomIndex, setZoomIndex] = useState(0);
+  const zoomFactor = ZOOM_LEVELS[zoomIndex];
+
   const [viewMode, setViewMode] = useState<'visual' | 'table'>('visual');
   const [selectedBedId, setSelectedBedId] = useState<string | null>(
     beds.length > 0 ? beds[0].id : null,
@@ -99,25 +103,51 @@ export function LayoutView({
     <div className="flex flex-col gap-6">
       {/* Toolbar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        {/* Year nav */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onYearChange(selectedYear - 1)}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-            title="Previous year"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-lg font-semibold text-gray-800 w-16 text-center">{selectedYear}</span>
-          <button
-            type="button"
-            onClick={() => onYearChange(selectedYear + 1)}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-            title="Next year"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+        {/* Year nav + zoom */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onYearChange(selectedYear - 1)}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+              title="Previous year"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-lg font-semibold text-gray-800 w-16 text-center">{selectedYear}</span>
+            <button
+              type="button"
+              onClick={() => onYearChange(selectedYear + 1)}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+              title="Next year"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          {/* Zoom controls */}
+          <div className="flex items-center gap-1 border-l border-gray-200 pl-4">
+            <button
+              type="button"
+              onClick={() => setZoomIndex(Math.max(0, zoomIndex - 1))}
+              disabled={zoomIndex === 0}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Zoom in"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <span className="text-xs font-medium text-gray-500 w-14 text-center">
+              {zoomFactor === 1 ? '1 in' : `${zoomFactor} in`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setZoomIndex(Math.min(ZOOM_LEVELS.length - 1, zoomIndex + 1))}
+              disabled={zoomIndex === ZOOM_LEVELS.length - 1}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Zoom out"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Edit controls */}
@@ -235,6 +265,7 @@ export function LayoutView({
         <BedList
           beds={beds}
           year={selectedYear}
+          zoomFactor={zoomFactor}
           selectedBedId={selectedBedId}
           onSelectedBedChange={setSelectedBedId}
           isEditing={isEditing}

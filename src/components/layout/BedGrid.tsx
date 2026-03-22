@@ -19,6 +19,7 @@ const DEFAULT_PLANT_COLOR = '#86efac';
 interface BedGridProps {
   bed: GardenBed;
   year: number;
+  zoomFactor?: number;
   readOnly?: boolean;
   onEmptyCellClick: (row: number, col: number) => void;
   onPlantingClick: (planting: Planting) => void;
@@ -44,22 +45,34 @@ function getOccupiedCells(plantings: Planting[]): Set<string> {
 }
 */
 
-export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlantingClick, onMovePlanting, onFixtureClick }: BedGridProps) {
-  const cols = bedGridCols(bed);
-  const rows = bedGridRows(bed);
+export function BedGrid({ bed, year, zoomFactor = 1, readOnly = false, onEmptyCellClick, onPlantingClick, onMovePlanting, onFixtureClick }: BedGridProps) {
+  const zf = zoomFactor;
+  const cols = Math.ceil(bedGridCols(bed) / zf);
+  const rows = Math.ceil(bedGridRows(bed) / zf);
   const yearPlantings = bed.plantings.filter((p) => p.year === year);
   //const occupied = getOccupiedCells(yearPlantings);
 
   const [drag, setDrag] = useState<DragState | null>(null);
   const [hoverCell, setHoverCell] = useState<{ row: number; col: number } | null>(null);
 
-  // Clamp proposed top-left so the planting stays inside the bed
+  // Display dimensions for a planting (zoomed)
+  function displayPlanting(p: { row: number; col: number; width: number; height: number }) {
+    return {
+      row: Math.floor(p.row / zf),
+      col: Math.floor(p.col / zf),
+      width: Math.max(1, Math.round(p.width / zf)),
+      height: Math.max(1, Math.round(p.height / zf)),
+    };
+  }
+
+  // Clamp proposed top-left so the planting stays inside the bed (in display coords)
   function proposed(dropRow: number, dropCol: number) {
     if (!drag) return null;
     const { planting: p, grabRow, grabCol } = drag;
+    const dp = displayPlanting(p);
     return {
-      row: Math.max(0, Math.min(rows - p.height, dropRow - grabRow)),
-      col: Math.max(0, Math.min(cols - p.width,  dropCol - grabCol)),
+      row: Math.max(0, Math.min(rows - dp.height, dropRow - grabRow)),
+      col: Math.max(0, Math.min(cols - dp.width,  dropCol - grabCol)),
     };
   }
 
@@ -75,8 +88,11 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
     if (!drag) return;
     const pos = proposed(row, col);
     if (!pos) return;
-    if (pos.row !== drag.planting.row || pos.col !== drag.planting.col) {
-      onMovePlanting(drag.planting, pos.row, pos.col);
+    // Convert display coords back to actual coords
+    const actualRow = pos.row * zf;
+    const actualCol = pos.col * zf;
+    if (actualRow !== drag.planting.row || actualCol !== drag.planting.col) {
+      onMovePlanting(drag.planting, actualRow, actualCol);
     }
     setDrag(null);
     setHoverCell(null);
@@ -100,13 +116,13 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
           key={`e-${r}-${c}`}
           onDragOver={readOnly ? undefined : (e) => onCellDragOver(e, r, c)}
           onDrop={readOnly ? undefined : (e) => onCellDrop(e, r, c)}
-          onClick={readOnly ? undefined : () => !drag && onEmptyCellClick(r, c)}
+          onClick={readOnly ? undefined : () => !drag && onEmptyCellClick(r * zf, c * zf)}
           style={{ gridColumn: c + 1, gridRow: r + 1 }}
           className={[
             'rounded border border-dashed border-gray-200',
             readOnly ? '' : 'cursor-pointer hover:border-garden-400 hover:bg-garden-50 transition-colors group',
           ].join(' ')}
-          title={readOnly ? undefined : `Row ${r + 1}, Col ${c + 1}`}
+          title={readOnly ? undefined : `Row ${r * zf + 1}, Col ${c * zf + 1}`}
         >
           {!readOnly && (
             <span className="text-[7px] leading-none text-gray-300 group-hover:text-garden-400 flex items-center justify-center w-full h-full select-none">
@@ -121,17 +137,21 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
   // Fixture tiles (permanent, not year-filtered)
   for (const f of bed.fixtures ?? []) {
     const bounds = fixtureBounds(f.shape);
+    const dCol = Math.floor(f.col / zf);
+    const dRow = Math.floor(f.row / zf);
+    const dW = Math.max(1, Math.round(bounds.width / zf));
+    const dH = Math.max(1, Math.round(bounds.height / zf));
     const isCircle = f.shape.kind === 'circle';
     const isTriangle = f.shape.kind === 'right-triangle';
     const angle = f.shape.kind === 'rectangle' && f.shape.angle !== undefined ? f.shape.angle : 0;
-    
+
     cells.push(
       <div
         key={`f-${f.id}`}
         onClick={readOnly ? undefined : () => onFixtureClick?.(f)}
         style={{
-          gridColumn: `${f.col + 1} / span ${bounds.width}`,
-          gridRow: `${f.row + 1} / span ${bounds.height}`,
+          gridColumn: `${dCol + 1} / span ${dW}`,
+          gridRow: `${dRow + 1} / span ${dH}`,
           backgroundColor: f.color,
           borderRadius: isCircle ? '50%' : undefined,
           clipPath: isTriangle && f.shape.kind === 'right-triangle' ? triangleClipPath(f.shape.corner) : undefined,
@@ -153,6 +173,7 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
 
   // Planting tiles
   for (const p of yearPlantings) {
+    const dp = displayPlanting(p);
     const bg = p.color ?? DEFAULT_PLANT_COLOR;
     const isDragging = drag?.planting.id === p.id;
     cells.push(
@@ -161,8 +182,8 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
         draggable={!readOnly}
         onDragStart={readOnly ? undefined : (e) => {
           const rect = e.currentTarget.getBoundingClientRect();
-          const grabCol = Math.max(0, Math.min(p.width  - 1, Math.floor((e.clientX - rect.left) / CELL_STEP)));
-          const grabRow = Math.max(0, Math.min(p.height - 1, Math.floor((e.clientY - rect.top)  / CELL_STEP)));
+          const grabCol = Math.max(0, Math.min(dp.width  - 1, Math.floor((e.clientX - rect.left) / CELL_STEP)));
+          const grabRow = Math.max(0, Math.min(dp.height - 1, Math.floor((e.clientY - rect.top)  / CELL_STEP)));
           // Position the native ghost so cursor sits over the grabbed cell
           e.dataTransfer.setDragImage(
             e.currentTarget,
@@ -175,26 +196,23 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
         }}
         onDragEnd={readOnly ? undefined : () => { setDrag(null); setHoverCell(null); }}
         onDragOver={readOnly ? undefined : (e) => {
-          // Allow dragging over other plantings (to reach cells underneath)
-          //if (!drag || drag.planting.id === p.id) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
           const rect = e.currentTarget.getBoundingClientRect();
-          const cellCol = Math.max(0, Math.min(p.width  - 1, Math.floor((e.clientX - rect.left) / CELL_STEP)));
-          const cellRow = Math.max(0, Math.min(p.height - 1, Math.floor((e.clientY - rect.top)  / CELL_STEP)));
-          setHoverCell({ row: p.row + cellRow, col: p.col + cellCol });
+          const cellCol = Math.max(0, Math.min(dp.width  - 1, Math.floor((e.clientX - rect.left) / CELL_STEP)));
+          const cellRow = Math.max(0, Math.min(dp.height - 1, Math.floor((e.clientY - rect.top)  / CELL_STEP)));
+          setHoverCell({ row: dp.row + cellRow, col: dp.col + cellCol });
         }}
         onDrop={readOnly ? undefined : (e) => {
-          //if (!drag || drag.planting.id === p.id) return;
           const rect = e.currentTarget.getBoundingClientRect();
-          const cellCol = Math.max(0, Math.min(p.width  - 1, Math.floor((e.clientX - rect.left) / CELL_STEP)));
-          const cellRow = Math.max(0, Math.min(p.height - 1, Math.floor((e.clientY - rect.top)  / CELL_STEP)));
-          onCellDrop(e, p.row + cellRow, p.col + cellCol);
+          const cellCol = Math.max(0, Math.min(dp.width  - 1, Math.floor((e.clientX - rect.left) / CELL_STEP)));
+          const cellRow = Math.max(0, Math.min(dp.height - 1, Math.floor((e.clientY - rect.top)  / CELL_STEP)));
+          onCellDrop(e, dp.row + cellRow, dp.col + cellCol);
         }}
         onClick={readOnly ? undefined : () => !drag && onPlantingClick(p)}
         style={{
-          gridColumn: `${p.col + 1} / span ${p.width}`,
-          gridRow:    `${p.row + 1} / span ${p.height}`,
+          gridColumn: `${dp.col + 1} / span ${dp.width}`,
+          gridRow:    `${dp.row + 1} / span ${dp.height}`,
           backgroundColor: bg,
           opacity: isDragging ? 0.35 : 1,
           zIndex: 6,
@@ -214,12 +232,13 @@ export function BedGrid({ bed, year, readOnly = false, onEmptyCellClick, onPlant
 
   // Drop-preview overlay tile (rendered last = on top)
   if (!readOnly && preview && drag) {
+    const dpPreview = displayPlanting(drag.planting);
     cells.push(
       <div
         key="preview"
         style={{
-          gridColumn: `${preview.col + 1} / span ${drag.planting.width}`,
-          gridRow:    `${preview.row + 1} / span ${drag.planting.height}`,
+          gridColumn: `${preview.col + 1} / span ${dpPreview.width}`,
+          gridRow:    `${preview.row + 1} / span ${dpPreview.height}`,
           backgroundColor: preview.valid ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.35)',
           border: `1px solid ${preview.valid ? '#4ade80' : '#f87171'}`,
           zIndex: 10,

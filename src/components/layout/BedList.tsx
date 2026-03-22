@@ -5,6 +5,7 @@ import { BedCard } from './BedCard';
 interface BedListProps {
   beds: GardenBed[];
   year: number;
+  zoomFactor?: number;
   selectedBedId: string | null;
   onSelectedBedChange: (bedId: string) => void;
   isEditing: boolean;
@@ -17,7 +18,7 @@ interface BedListProps {
   onFixtureClick: (bed: GardenBed, fixture: Fixture) => void;
 }
 
-export function BedList({ beds, year, selectedBedId, onSelectedBedChange, isEditing, onEditBed, onDeleteBed, onEmptyCellClick, onPlantingClick, onMovePlanting, onAddFixture, onFixtureClick }: BedListProps) {
+export function BedList({ beds, year, zoomFactor = 1, selectedBedId, onSelectedBedChange, isEditing, onEditBed, onDeleteBed, onEmptyCellClick, onPlantingClick, onMovePlanting, onAddFixture, onFixtureClick }: BedListProps) {
 
   if (beds.length === 0) {
     return (
@@ -57,6 +58,7 @@ export function BedList({ beds, year, selectedBedId, onSelectedBedChange, isEdit
         key={selectedBed.id}
         bed={selectedBed}
         year={year}
+        zoomFactor={zoomFactor}
         isEditing={isEditing}
         onEdit={onEditBed}
         onDelete={onDeleteBed}

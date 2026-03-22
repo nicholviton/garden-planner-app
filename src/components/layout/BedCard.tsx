@@ -6,6 +6,7 @@ import { BedGrid } from './BedGrid';
 interface BedCardProps {
   bed: GardenBed;
   year: number;
+  zoomFactor?: number;
   isEditing: boolean;
   onEdit: (bed: GardenBed) => void;
   onDelete: (bed: GardenBed) => void;
@@ -16,7 +17,7 @@ interface BedCardProps {
   onFixtureClick: (bed: GardenBed, fixture: Fixture) => void;
 }
 
-export function BedCard({ bed, year, isEditing, onEdit, onDelete, onEmptyCellClick, onPlantingClick, onMovePlanting, onAddFixture, onFixtureClick }: BedCardProps) {
+export function BedCard({ bed, year, zoomFactor = 1, isEditing, onEdit, onDelete, onEmptyCellClick, onPlantingClick, onMovePlanting, onAddFixture, onFixtureClick }: BedCardProps) {
   const yearCount = bed.plantings.filter((p) => p.year === year).length;
   const fixtureCount = (bed.fixtures ?? []).length;
 
@@ -63,6 +64,7 @@ export function BedCard({ bed, year, isEditing, onEdit, onDelete, onEmptyCellCli
         <BedGrid
           bed={bed}
           year={year}
+          zoomFactor={zoomFactor}
           readOnly={!isEditing}
           onEmptyCellClick={(row, col) => onEmptyCellClick(bed, row, col)}
           onPlantingClick={(planting) => onPlantingClick(bed, planting)}
