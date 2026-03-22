@@ -39,8 +39,8 @@ async function removePhoto(config: GitHubConfig, photo: GardenPhoto): Promise<vo
   await deleteFile(config, photo.path, sha, `Remove photo ${photo.id}`);
 }
 
-export async function getSortedNotes(config: GitHubConfig): Promise<GardenNote[]> {
-  const result = await getJsonFile<GardenNote[]>(config, NOTES_PATH);
+export async function getSortedNotes(config: GitHubConfig, forceLoad: boolean = false): Promise<GardenNote[]> {
+  const result = await getJsonFile<GardenNote[]>(config, NOTES_PATH, forceLoad);
   if (!result) return [];
   return sortNotes(result.data);
 }

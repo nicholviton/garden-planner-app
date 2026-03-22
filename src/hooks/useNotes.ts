@@ -15,11 +15,11 @@ export function useNotes(config: GitHubConfig | null) {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  async function loadNotes(cfg: GitHubConfig) {
+  async function loadNotes(cfg: GitHubConfig, forceRefresh: boolean = false) {
     setIsLoading(true);
     setError(null);
     try {
-      const loaded = await getSortedNotes(cfg);
+      const loaded = await getSortedNotes(cfg, forceRefresh);
       setNotes(loaded);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -42,7 +42,7 @@ export function useNotes(config: GitHubConfig | null) {
     setError(null);
     try {
       await createNote(config, formData);
-      await loadNotes(config);
+      await loadNotes(config, true); // Force refresh after save
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -56,7 +56,7 @@ export function useNotes(config: GitHubConfig | null) {
     setError(null);
     try {
       await updateNote(config, id, formData, originalPhotos);
-      await loadNotes(config);
+      await loadNotes(config, true); // Force refresh after save
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -70,7 +70,7 @@ export function useNotes(config: GitHubConfig | null) {
     setError(null);
     try {
       await deleteNote(config, id, photos);
-      await loadNotes(config);
+      await loadNotes(config, true); // Force refresh after save
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
