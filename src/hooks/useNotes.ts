@@ -2,13 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import type { GitHubConfig } from '@/lib/github';
 import type { GardenNote, NoteFormData } from '@/types/note';
 import {
-  getSortedNotes,
+  getSortedNotesForSeason,
   createNote,
   updateNote,
   deleteNote,
 } from '@/lib/githubStorage';
 
-export function useNotes(config: GitHubConfig | null) {
+export function useNotes(config: GitHubConfig | null, seasonId: string) {
   const [notes, setNotes] = useState<GardenNote[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -19,7 +19,7 @@ export function useNotes(config: GitHubConfig | null) {
     setIsLoading(true);
     setError(null);
     try {
-      const loaded = await getSortedNotes(cfg, forceRefresh);
+      const loaded = await getSortedNotesForSeason(cfg, seasonId, forceRefresh);
       setNotes(loaded);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -34,14 +34,14 @@ export function useNotes(config: GitHubConfig | null) {
       return;
     }
     loadNotes(config);
-  }, [config]);
+  }, [config, seasonId]);
 
   async function addNote(formData: NoteFormData) {
     if (!config) return;
     setIsMutating(true);
     setError(null);
     try {
-      await createNote(config, formData);
+      await createNote(config, formData, seasonId);
       await loadNotes(config, true); // Force refresh after save
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -55,7 +55,7 @@ export function useNotes(config: GitHubConfig | null) {
     setIsMutating(true);
     setError(null);
     try {
-      await updateNote(config, id, formData, originalPhotos);
+      await updateNote(config, id, formData, originalPhotos, seasonId);
       await loadNotes(config, true); // Force refresh after save
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -69,7 +69,7 @@ export function useNotes(config: GitHubConfig | null) {
     setIsMutating(true);
     setError(null);
     try {
-      await deleteNote(config, id, photos);
+      await deleteNote(config, id, photos, seasonId);
       await loadNotes(config, true); // Force refresh after save
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

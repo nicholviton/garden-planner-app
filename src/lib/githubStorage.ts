@@ -2,8 +2,38 @@ import { v4 as uuidv4 } from 'uuid';
 import type { GitHubConfig } from '@/lib/github';
 import { getJsonFile, putFile, deleteFile, getFileSha } from '@/lib/github';
 import type { GardenNote, GardenPhoto, NoteFormData } from '@/types/note';
+import { DEFAULT_SEASON_ID } from '@/types/season';
 
 const NOTES_PATH = 'notes.json';
+
+function notesPathForSeason(seasonId: string): string {
+  return `seasons/${seasonId}/notes.json`;
+}
+
+function isDefaultSeason(seasonId: string): boolean {
+  return seasonId === DEFAULT_SEASON_ID;
+}
+
+async function readSeasonNotes(
+  config: GitHubConfig,
+  seasonId: string,
+  forceLoad: boolean = false,
+): Promise<{ notes: GardenNote[]; sha?: string; path: string }> {
+  const seasonPath = notesPathForSeason(seasonId);
+  const seasonFile = await getJsonFile<GardenNote[]>(config, seasonPath, forceLoad);
+  if (seasonFile) {
+    return { notes: seasonFile.data, sha: seasonFile.sha, path: seasonPath };
+  }
+
+  if (isDefaultSeason(seasonId)) {
+    const legacy = await getJsonFile<GardenNote[]>(config, NOTES_PATH, forceLoad);
+    if (legacy) {
+      return { notes: legacy.data, sha: legacy.sha, path: NOTES_PATH };
+    }
+  }
+
+  return { notes: [], path: seasonPath };
+}
 
 function sortNotes(notes: GardenNote[]): GardenNote[] {
   return [...notes].sort((a, b) => {
@@ -40,14 +70,23 @@ async function removePhoto(config: GitHubConfig, photo: GardenPhoto): Promise<vo
 }
 
 export async function getSortedNotes(config: GitHubConfig, forceLoad: boolean = false): Promise<GardenNote[]> {
-  const result = await getJsonFile<GardenNote[]>(config, NOTES_PATH, forceLoad);
-  if (!result) return [];
-  return sortNotes(result.data);
+  const { notes } = await readSeasonNotes(config, DEFAULT_SEASON_ID, forceLoad);
+  return sortNotes(notes);
+}
+
+export async function getSortedNotesForSeason(
+  config: GitHubConfig,
+  seasonId: string,
+  forceLoad: boolean = false,
+): Promise<GardenNote[]> {
+  const { notes } = await readSeasonNotes(config, seasonId, forceLoad);
+  return sortNotes(notes);
 }
 
 export async function createNote(
   config: GitHubConfig,
   formData: NoteFormData,
+  seasonId: string = DEFAULT_SEASON_ID,
 ): Promise<GardenNote> {
   // 1. Upload each new photo (has dataUrl, no path)
   const uploadedPhotos: GardenPhoto[] = await Promise.all(
@@ -58,6 +97,7 @@ export async function createNote(
   const now = new Date().toISOString();
   const note: GardenNote = {
     ...formData,
+    seasonId,
     photos: uploadedPhotos,
     id: uuidv4(),
     createdAt: now,
@@ -65,12 +105,12 @@ export async function createNote(
   };
 
   // 3. Read-modify-write notes.json
-  const existing = await getJsonFile<GardenNote[]>(config, NOTES_PATH);
-  const notes = existing ? existing.data : [];
-  const sha = existing?.sha;
+  const existing = await readSeasonNotes(config, seasonId);
+  const notes = existing.notes;
+  const sha = existing.sha;
   await putFile(
     config,
-    NOTES_PATH,
+    notesPathForSeason(seasonId),
     jsonToBase64([...notes, note]),
     `Add note ${note.id}`,
     sha,
@@ -84,6 +124,7 @@ export async function updateNote(
   id: string,
   formData: NoteFormData,
   originalPhotos: GardenPhoto[],
+  seasonId: string = DEFAULT_SEASON_ID,
 ): Promise<GardenNote> {
   // 1. Upload new photos (have dataUrl, no path)
   const uploadedPhotos: GardenPhoto[] = await Promise.all(
@@ -96,19 +137,26 @@ export async function updateNote(
   await Promise.all(removed.map((p) => removePhoto(config, p)));
 
   // 3. Read-modify-write notes.json
-  const existing = await getJsonFile<GardenNote[]>(config, NOTES_PATH);
-  if (!existing) throw new Error('notes.json not found');
+  const existing = await readSeasonNotes(config, seasonId);
+  if (!existing.sha && existing.notes.length === 0) throw new Error('No notes found for this season.');
   const now = new Date().toISOString();
   let updated: GardenNote | undefined;
-  const newNotes = existing.data.map((n) => {
+  const newNotes = existing.notes.map((n) => {
     if (n.id === id) {
-      updated = { ...formData, photos: uploadedPhotos, id, createdAt: n.createdAt, updatedAt: now };
+      updated = {
+        ...formData,
+        seasonId: n.seasonId ?? seasonId,
+        photos: uploadedPhotos,
+        id,
+        createdAt: n.createdAt,
+        updatedAt: now,
+      };
       return updated;
     }
     return n;
   });
   if (!updated) throw new Error(`Note ${id} not found`);
-  await putFile(config, NOTES_PATH, jsonToBase64(newNotes), `Update note ${id}`, existing.sha);
+  await putFile(config, notesPathForSeason(seasonId), jsonToBase64(newNotes), `Update note ${id}`, existing.sha);
   return updated;
 }
 
@@ -116,15 +164,16 @@ export async function deleteNote(
   config: GitHubConfig,
   id: string,
   photos: GardenPhoto[],
+  seasonId: string = DEFAULT_SEASON_ID,
 ): Promise<void> {
   // 1. Delete photo files
   await Promise.all(photos.map((p) => removePhoto(config, p)));
 
   // 2. Read-modify-write notes.json
-  const existing = await getJsonFile<GardenNote[]>(config, NOTES_PATH);
-  if (!existing) return; // Nothing to do
-  const filtered = existing.data.filter((n) => n.id !== id);
-  await putFile(config, NOTES_PATH, jsonToBase64(filtered), `Delete note ${id}`, existing.sha);
+  const existing = await readSeasonNotes(config, seasonId);
+  if (!existing.sha) return; // Nothing to do
+  const filtered = existing.notes.filter((n) => n.id !== id);
+  await putFile(config, notesPathForSeason(seasonId), jsonToBase64(filtered), `Delete note ${id}`, existing.sha);
 }
 
 /**

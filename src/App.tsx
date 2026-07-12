@@ -5,6 +5,7 @@ import type { GitHubConfig } from '@/lib/github';
 import { useNotes } from '@/hooks/useNotes';
 import { useLayout } from '@/hooks/useLayout';
 import { usePlantTypes } from '@/hooks/usePlantTypes';
+import { useSeasons } from '@/hooks/useSeasons';
 import { GitHubConfigContext } from '@/contexts/GitHubConfigContext';
 import type { GardenNote } from '@/types/note';
 import type { GardenBed, Planting, BedFormData, PlantingFormData, Fixture, FixtureFormData } from '@/types/layout';
@@ -20,6 +21,7 @@ import { findPlacement } from '@/lib/layoutStorage';
 
 import { Header } from '@/components/layout/Header';
 import { TabBar } from '@/components/layout/TabBar';
+import { SeasonBar } from '@/components/layout/SeasonBar';
 import { SearchBar } from '@/components/search/SearchBar';
 import { Button } from '@/components/ui/Button';
 import { NoteList } from '@/components/notes/NoteList';
@@ -40,8 +42,20 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(!config);
   const [activeTab, setActiveTab] = useState<'notes' | 'layout' | 'plants'>('notes');
 
+  // Seasons
+  const {
+    seasons,
+    selectedSeasonId,
+    isLoading: isSeasonsLoading,
+    isMutating: isSeasonsMutating,
+    error: seasonsError,
+    setSelectedSeasonId,
+    addSeason,
+    moveSeason,
+  } = useSeasons(config);
+
   // Notes
-  const { notes, totalCount, isLoading, isMutating, error, searchQuery, setSearchQuery, addNote, editNote, removeNote } = useNotes(config);
+  const { notes, totalCount, isLoading, isMutating, error, searchQuery, setSearchQuery, addNote, editNote, removeNote } = useNotes(config, selectedSeasonId);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<GardenNote | null>(null);
   const [viewingNote, setViewingNote] = useState<GardenNote | null>(null);
@@ -56,7 +70,7 @@ export default function App() {
     selectedYear,
     setSelectedYear,
     commitBeds,
-  } = useLayout(config);
+  } = useLayout(config, selectedSeasonId);
 
   // Layout — edit session draft state
   const [draftBeds, setDraftBeds] = useState<GardenBed[] | null>(null);
@@ -86,7 +100,7 @@ export default function App() {
     error: plantTypesError,
     commitPlantTypes,
     reloadPlantTypes,
-  } = usePlantTypes(config);
+  } = usePlantTypes(config, selectedSeasonId);
 
   useEffect(() => {
     if (activeTab === 'plants') reloadPlantTypes();
@@ -242,15 +256,26 @@ export default function App() {
   }
 
   const activeError =
-    activeTab === 'notes' ? error :
+    seasonsError ||
+    (activeTab === 'notes' ? error :
     activeTab === 'layout' ? layoutError :
-    plantTypesError;
+    plantTypesError);
 
   return (
     <GitHubConfigContext.Provider value={config}>
       <div className="min-h-screen bg-garden-50 flex flex-col">
         <Header onSettingsClick={() => setIsSettingsOpen(true)} totalNotes={totalCount} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <SeasonBar
+          seasons={seasons}
+          selectedSeasonId={selectedSeasonId}
+          onSelectSeason={setSelectedSeasonId}
+          onAddSeason={addSeason}
+          onMoveSeason={moveSeason}
+          isLoading={isSeasonsLoading}
+          isMutating={isSeasonsMutating}
+          hasConfig={!!config}
+        />
 
         {activeError && (
           <div className="bg-red-50 border-b border-red-200 px-4 py-2">

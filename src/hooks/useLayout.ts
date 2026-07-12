@@ -17,7 +17,7 @@ import {
   overwriteBeds,
 } from '@/lib/layoutStorage';
 
-export function useLayout(config: GitHubConfig | null) {
+export function useLayout(config: GitHubConfig | null, seasonId: string) {
   const [beds, setBeds] = useState<GardenBed[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -28,7 +28,7 @@ export function useLayout(config: GitHubConfig | null) {
     setIsLoading(true);
     setError(null);
     try {
-      const loaded = await getBeds(cfg, forceLoad);
+      const loaded = await getBeds(cfg, seasonId, forceLoad);
       console.log(`📊 Loaded ${loaded.length} beds:`);
       loaded.forEach((bed, index) => {
         console.log(`  ${index + 1}. "${bed.name}": ${bed.plantings.length} plantings`);
@@ -50,14 +50,14 @@ export function useLayout(config: GitHubConfig | null) {
       return;
     }
     loadBeds(config).catch(() => {});
-  }, [config]);
+  }, [config, seasonId]);
 
   async function addBed(formData: BedFormData) {
     if (!config) return;
     setIsMutating(true);
     setError(null);
     try {
-      await createBed(config, formData);
+      await createBed(config, formData, seasonId);
       await loadBeds(config);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -71,7 +71,7 @@ export function useLayout(config: GitHubConfig | null) {
     setIsMutating(true);
     setError(null);
     try {
-      await updateBed(config, id, formData);
+      await updateBed(config, id, formData, seasonId);
       await loadBeds(config);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -85,7 +85,7 @@ export function useLayout(config: GitHubConfig | null) {
     setIsMutating(true);
     setError(null);
     try {
-      await deleteBed(config, id);
+      await deleteBed(config, id, seasonId);
       await loadBeds(config);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -99,7 +99,7 @@ export function useLayout(config: GitHubConfig | null) {
     setIsMutating(true);
     setError(null);
     try {
-      await addPlanting(config, bedId, selectedYear, data);
+      await addPlanting(config, bedId, selectedYear, data, seasonId);
       await loadBeds(config);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -133,7 +133,7 @@ export function useLayout(config: GitHubConfig | null) {
     );
     setError(null);
     try {
-      await updatePlanting(config, bedId, plantingId, data);
+      await updatePlanting(config, bedId, plantingId, data, seasonId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       await loadBeds(config);
@@ -155,7 +155,7 @@ export function useLayout(config: GitHubConfig | null) {
     let retries = 3;
     while (retries > 0) {
       try {
-        await deletePlanting(config, bedId, plantingId);
+        await deletePlanting(config, bedId, plantingId, seasonId);
         return; // Success, exit the retry loop
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : String(err);
@@ -193,7 +193,7 @@ export function useLayout(config: GitHubConfig | null) {
     );
     setError(null);
     try {
-      await storageMoveePlanting(config, bedId, plantingId, newRow, newCol);
+      await storageMoveePlanting(config, bedId, plantingId, newRow, newCol, seasonId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       // Reload true state on failure
@@ -226,7 +226,7 @@ export function useLayout(config: GitHubConfig | null) {
     );
     setError(null);
     try {
-      await insertPlanting(config, planting);
+      await insertPlanting(config, planting, seasonId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       await loadBeds(config);
@@ -238,7 +238,7 @@ export function useLayout(config: GitHubConfig | null) {
     setIsMutating(true);
     setError(null);
     try {
-      await overwriteBeds(config, bedsToWrite);
+      await overwriteBeds(config, bedsToWrite, seasonId);
       await loadBeds(config, true);
       return true;
     } catch (err) {

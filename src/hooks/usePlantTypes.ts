@@ -3,7 +3,7 @@ import type { GitHubConfig } from '@/lib/github';
 import type { PlantType, PlantTypeFormData } from '@/types/plantType';
 import { getPlantTypes, savePlantType, updatePlantType, deletePlantType, overwritePlantTypes } from '@/lib/plantTypeStorage';
 
-export function usePlantTypes(config: GitHubConfig | null) {
+export function usePlantTypes(config: GitHubConfig | null, seasonId: string) {
   const [plantTypes, setPlantTypes] = useState<PlantType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -13,7 +13,7 @@ export function usePlantTypes(config: GitHubConfig | null) {
     setIsLoading(true);
     setError(null);
     try {
-      const loaded = await getPlantTypes(cfg, forceLoad);
+      const loaded = await getPlantTypes(cfg, seasonId, forceLoad);
       console.log(`🌱 Loaded ${loaded.length} plant type(s)`);
       setPlantTypes(loaded);
     } catch (err) {
@@ -29,14 +29,14 @@ export function usePlantTypes(config: GitHubConfig | null) {
   useEffect(() => {
     if (!config) { setPlantTypes([]); return; }
     loadTypes(config).catch(() => {});
-  }, [config]);
+  }, [config, seasonId]);
 
   async function addPlantType(data: PlantTypeFormData) {
     if (!config) return;
     setIsMutating(true);
     setError(null);
     try {
-      const pt = await savePlantType(config, data);
+      const pt = await savePlantType(config, data, seasonId);
       setPlantTypes((prev) => [...prev, pt]);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -53,7 +53,7 @@ export function usePlantTypes(config: GitHubConfig | null) {
     );
     setError(null);
     try {
-      await updatePlantType(config, id, data);
+      await updatePlantType(config, id, data, seasonId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       await loadTypes(config);
@@ -65,7 +65,7 @@ export function usePlantTypes(config: GitHubConfig | null) {
     setPlantTypes((prev) => prev.filter((t) => t.id !== id));
     setError(null);
     try {
-      await deletePlantType(config, id);
+      await deletePlantType(config, id, seasonId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       await loadTypes(config);
@@ -77,7 +77,7 @@ export function usePlantTypes(config: GitHubConfig | null) {
     setIsMutating(true);
     setError(null);
     try {
-      await overwritePlantTypes(config, typesToWrite);
+      await overwritePlantTypes(config, typesToWrite, seasonId);
       await loadTypes(config, true);
       return true;
     } catch (err) {

@@ -2,35 +2,55 @@ import { v4 as uuidv4 } from 'uuid';
 import type { GitHubConfig } from '@/lib/github';
 import { getJsonFile, putFile } from '@/lib/github';
 import type { GardenBed, BedFormData, PlantingFormData, Planting } from '@/types/layout';
+import { DEFAULT_SEASON_ID } from '@/types/season';
 
 const LAYOUT_PATH = 'layout.json';
+
+function layoutPathForSeason(seasonId: string): string {
+  return `seasons/${seasonId}/layout.json`;
+}
+
+function isDefaultSeason(seasonId: string): boolean {
+  return seasonId === DEFAULT_SEASON_ID;
+}
 
 function jsonToBase64(data: unknown): string {
   return btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
 }
 
-async function readBeds(config: GitHubConfig, forceLoad: boolean = false): Promise<{ beds: GardenBed[]; sha?: string }> {
-  const result = await getJsonFile<GardenBed[]>(config, LAYOUT_PATH, forceLoad);
-  if (!result) return { beds: [] };
-  return { beds: result.data, sha: result.sha };
+async function readBeds(
+  config: GitHubConfig,
+  seasonId: string = DEFAULT_SEASON_ID,
+  forceLoad: boolean = false,
+): Promise<{ beds: GardenBed[]; sha?: string; path: string }> {
+  const seasonPath = layoutPathForSeason(seasonId);
+  const seasonData = await getJsonFile<GardenBed[]>(config, seasonPath, forceLoad);
+  if (seasonData) return { beds: seasonData.data, sha: seasonData.sha, path: seasonPath };
+
+  if (isDefaultSeason(seasonId)) {
+    const legacy = await getJsonFile<GardenBed[]>(config, LAYOUT_PATH, forceLoad);
+    if (legacy) return { beds: legacy.data, sha: legacy.sha, path: LAYOUT_PATH };
+  }
+
+  return { beds: [], path: seasonPath };
 }
 
-async function writeBeds(config: GitHubConfig, beds: GardenBed[], sha?: string): Promise<void> {
-  await putFile(config, LAYOUT_PATH, jsonToBase64(beds), 'Update garden layout', sha);
+async function writeBeds(config: GitHubConfig, seasonId: string, beds: GardenBed[], sha?: string): Promise<void> {
+  await putFile(config, layoutPathForSeason(seasonId), jsonToBase64(beds), 'Update garden layout', sha);
 }
 
-export async function getBeds(config: GitHubConfig, forceLoad: boolean = false): Promise<GardenBed[]> {
-  const { beds } = await readBeds(config, forceLoad);
+export async function getBeds(config: GitHubConfig, seasonId: string = DEFAULT_SEASON_ID, forceLoad: boolean = false): Promise<GardenBed[]> {
+  const { beds } = await readBeds(config, seasonId, forceLoad);
   return beds;
 }
 
-export async function overwriteBeds(config: GitHubConfig, beds: GardenBed[]): Promise<void> {
-  const { sha } = await readBeds(config);
-  await writeBeds(config, beds, sha);
+export async function overwriteBeds(config: GitHubConfig, beds: GardenBed[], seasonId: string = DEFAULT_SEASON_ID): Promise<void> {
+  const { sha } = await readBeds(config, seasonId);
+  await writeBeds(config, seasonId, beds, sha);
 }
 
-export async function createBed(config: GitHubConfig, formData: BedFormData): Promise<GardenBed> {
-  const { beds, sha } = await readBeds(config);
+export async function createBed(config: GitHubConfig, formData: BedFormData, seasonId: string = DEFAULT_SEASON_ID): Promise<GardenBed> {
+  const { beds, sha } = await readBeds(config, seasonId);
   const now = new Date().toISOString();
   const bed: GardenBed = {
     id: uuidv4(),
@@ -41,7 +61,7 @@ export async function createBed(config: GitHubConfig, formData: BedFormData): Pr
     createdAt: now,
     updatedAt: now,
   };
-  await writeBeds(config, [...beds, bed], sha);
+  await writeBeds(config, seasonId, [...beds, bed], sha);
   return bed;
 }
 
@@ -49,8 +69,9 @@ export async function updateBed(
   config: GitHubConfig,
   id: string,
   formData: BedFormData,
+  seasonId: string = DEFAULT_SEASON_ID,
 ): Promise<GardenBed> {
-  const { beds, sha } = await readBeds(config);
+  const { beds, sha } = await readBeds(config, seasonId);
   let updated: GardenBed | undefined;
   const newBeds = beds.map((b) => {
     if (b.id === id) {
@@ -60,7 +81,7 @@ export async function updateBed(
     return b;
   });
   if (!updated) throw new Error(`Bed ${id} not found`);
-  await writeBeds(config, newBeds, sha);
+  await writeBeds(config, seasonId, newBeds, sha);
   return updated;
 }
 
@@ -70,8 +91,9 @@ export async function movePlanting(
   plantingId: string,
   newRow: number,
   newCol: number,
+  seasonId: string = DEFAULT_SEASON_ID,
 ): Promise<GardenBed> {
-  const { beds, sha } = await readBeds(config);
+  const { beds, sha } = await readBeds(config, seasonId);
   let updated: GardenBed | undefined;
   const newBeds = beds.map((b) => {
     if (b.id !== bedId) return b;
@@ -82,14 +104,14 @@ export async function movePlanting(
     return updated;
   });
   if (!updated) throw new Error(`Bed ${bedId} not found`);
-  await writeBeds(config, newBeds, sha);
+  await writeBeds(config, seasonId, newBeds, sha);
   return updated;
 }
 
-export async function deleteBed(config: GitHubConfig, id: string): Promise<void> {
-  const { beds, sha } = await readBeds(config);
+export async function deleteBed(config: GitHubConfig, id: string, seasonId: string = DEFAULT_SEASON_ID): Promise<void> {
+  const { beds, sha } = await readBeds(config, seasonId);
   const filtered = beds.filter((b) => b.id !== id);
-  await writeBeds(config, filtered, sha);
+  await writeBeds(config, seasonId, filtered, sha);
 }
 
 export async function addPlanting(
@@ -97,8 +119,9 @@ export async function addPlanting(
   bedId: string,
   year: number,
   data: PlantingFormData,
+  seasonId: string = DEFAULT_SEASON_ID,
 ): Promise<GardenBed> {
-  const { beds, sha } = await readBeds(config);
+  const { beds, sha } = await readBeds(config, seasonId);
   const planting: Planting = {
     id: uuidv4(),
     bedId,
@@ -122,7 +145,7 @@ export async function addPlanting(
     return b;
   });
   if (!updated) throw new Error(`Bed ${bedId} not found`);
-  await writeBeds(config, newBeds, sha);
+  await writeBeds(config, seasonId, newBeds, sha);
   return updated;
 }
 
@@ -131,8 +154,9 @@ export async function updatePlanting(
   bedId: string,
   plantingId: string,
   data: PlantingFormData,
+  seasonId: string = DEFAULT_SEASON_ID,
 ): Promise<GardenBed> {
-  const { beds, sha } = await readBeds(config);
+  const { beds, sha } = await readBeds(config, seasonId);
   let updated: GardenBed | undefined;
   const newBeds = beds.map((b) => {
     if (b.id !== bedId) return b;
@@ -153,7 +177,7 @@ export async function updatePlanting(
     return updated;
   });
   if (!updated) throw new Error(`Bed ${bedId} not found`);
-  await writeBeds(config, newBeds, sha);
+  await writeBeds(config, seasonId, newBeds, sha);
   return updated;
 }
 
@@ -177,8 +201,12 @@ export function findPlacement(bed: GardenBed, year: number, size: number): { row
   return { row: 0, col: 0 };
 }
 
-export async function insertPlanting(config: GitHubConfig, planting: Planting): Promise<GardenBed> {
-  const { beds, sha } = await readBeds(config);
+export async function insertPlanting(
+  config: GitHubConfig,
+  planting: Planting,
+  seasonId: string = DEFAULT_SEASON_ID,
+): Promise<GardenBed> {
+  const { beds, sha } = await readBeds(config, seasonId);
   let updated: GardenBed | undefined;
   const newBeds = beds.map((b) => {
     if (b.id !== planting.bedId) return b;
@@ -186,7 +214,7 @@ export async function insertPlanting(config: GitHubConfig, planting: Planting): 
     return updated;
   });
   if (!updated) throw new Error(`Bed ${planting.bedId} not found`);
-  await writeBeds(config, newBeds, sha);
+  await writeBeds(config, seasonId, newBeds, sha);
   return updated;
 }
 
@@ -194,8 +222,9 @@ export async function deletePlanting(
   config: GitHubConfig,
   bedId: string,
   plantingId: string,
+  seasonId: string = DEFAULT_SEASON_ID,
 ): Promise<GardenBed> {
-  const { beds, sha } = await readBeds(config);
+  const { beds, sha } = await readBeds(config, seasonId);
   let updated: GardenBed | undefined;
   const newBeds = beds.map((b) => {
     if (b.id !== bedId) return b;
@@ -203,6 +232,6 @@ export async function deletePlanting(
     return updated;
   });
   if (!updated) throw new Error(`Bed ${bedId} not found`);
-  await writeBeds(config, newBeds, sha);
+  await writeBeds(config, seasonId, newBeds, sha);
   return updated;
 }

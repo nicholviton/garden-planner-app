@@ -8,6 +8,7 @@ export interface GardenPhoto {
 
 export interface GardenNote {
   id: string;            // uuid v4
+  seasonId?: string;
   date: string;          // "YYYY-MM-DD"
   noteText: string;      // required
   plantName?: string;    // optional
