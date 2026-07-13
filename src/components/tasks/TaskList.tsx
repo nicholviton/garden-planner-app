@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CalendarClock, CheckSquare, Loader2, Lock, Pencil, Plus, Trash2, X } from 'lucide-react';
-import type { SeasonTask, TaskFormData } from '@/types/task';
+import type { SeasonTask, TaskFormData, TaskMonth } from '@/types/task';
 import type { TaskMonthFilter, TaskStatusFilter } from '@/hooks/useTasks';
 import { TASK_MONTH_OPTIONS } from '@/types/task';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { TaskForm } from '@/components/forms/TaskForm';
+import { getTaskMonthFromDueDate } from '@/types/task';
 
 interface TaskListProps {
   allTasks: SeasonTask[];
@@ -91,6 +92,26 @@ export function TaskList({
   const [confirmDelete, setConfirmDelete] = useState<SeasonTask | null>(null);
 
   const workingTasks = isEditing && draftTasks ? draftTasks : allTasks;
+
+  const statusFilteredTasks = useMemo(() => {
+    if (statusFilter === 'all') return workingTasks;
+    return workingTasks.filter((task) => (statusFilter === 'done' ? task.completed : !task.completed));
+  }, [workingTasks, statusFilter]);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<TaskMonth>();
+    for (const task of statusFilteredTasks) {
+      months.add(task.month);
+    }
+    return TASK_MONTH_OPTIONS.filter((option) => months.has(option.value));
+  }, [statusFilteredTasks]);
+
+  useEffect(() => {
+    if (monthFilter === 'all') return;
+    if (availableMonths.some((option) => option.value === monthFilter)) return;
+    onMonthFilterChange('all');
+  }, [monthFilter, availableMonths, onMonthFilterChange]);
+
   const tasks = useMemo(
     () => filterAndSortTasks(workingTasks, monthFilter, statusFilter),
     [workingTasks, monthFilter, statusFilter],
@@ -145,7 +166,7 @@ export function TaskList({
       seasonId,
       completed: data.completed,
       completedDate: data.completed ? data.completedDate ?? new Date().toISOString().slice(0, 10) : undefined,
-      month: data.month,
+      month: getTaskMonthFromDueDate(data.dueDate),
       details: data.details,
       dueDate: data.dueDate,
       createdAt: now,
@@ -160,7 +181,7 @@ export function TaskList({
     patchDraftTask(taskId, {
       completed: data.completed,
       completedDate: data.completed ? data.completedDate ?? new Date().toISOString().slice(0, 10) : undefined,
-      month: data.month,
+      month: getTaskMonthFromDueDate(data.dueDate),
       details: data.details,
       dueDate: data.dueDate,
       seasonId,
@@ -230,12 +251,12 @@ export function TaskList({
               value={monthFilter}
               onChange={(e) => {
                 const value = e.target.value;
-                onMonthFilterChange(value === 'all' ? 'all' : Number(value) as 0 | 1 | 2 | 3);
+                onMonthFilterChange(value === 'all' ? 'all' : Number(value) as TaskMonth);
               }}
               className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
             >
               <option value="all">All months</option>
-              {TASK_MONTH_OPTIONS.map((option) => (
+              {availableMonths.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>

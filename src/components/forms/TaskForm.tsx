@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import type { SeasonTask, TaskFormData, TaskMonth } from '@/types/task';
-import { TASK_MONTH_OPTIONS } from '@/types/task';
+import type { SeasonTask, TaskFormData } from '@/types/task';
+import { getTaskMonthFromDueDate } from '@/types/task';
 
 interface TaskFormProps {
   task?: SeasonTask;
@@ -17,7 +17,6 @@ function todayStr(): string {
 export function TaskForm({ task, onSubmit, onClose, loading = false }: TaskFormProps) {
   const [completed, setCompleted] = useState(task?.completed ?? false);
   const [completedDate, setCompletedDate] = useState(task?.completedDate ?? '');
-  const [month, setMonth] = useState<TaskMonth>(task?.month ?? 0);
   const [details, setDetails] = useState(task?.details ?? '');
   const [dueDate, setDueDate] = useState(task?.dueDate ?? '');
 
@@ -40,7 +39,7 @@ export function TaskForm({ task, onSubmit, onClose, loading = false }: TaskFormP
     onSubmit({
       completed,
       completedDate: completed ? (completedDate || todayStr()) : undefined,
-      month,
+      month: getTaskMonthFromDueDate(dueDate || undefined),
       details: details.trim(),
       dueDate: dueDate || undefined,
       seasonId: task?.seasonId,
@@ -70,19 +69,6 @@ export function TaskForm({ task, onSubmit, onClose, loading = false }: TaskFormP
           disabled={!completed}
           className={`${inputCls} disabled:bg-gray-100 disabled:text-gray-500`}
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-        <select
-          value={month}
-          onChange={(e) => setMonth(Number(e.target.value) as TaskMonth)}
-          className={inputCls}
-        >
-          {TASK_MONTH_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
       </div>
 
       <div>

@@ -1,26 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { GitHubConfig } from '@/lib/github';
+import { getTaskMonthFromDueDate } from '@/types/task';
 import type { SeasonTask, TaskFormData, TaskMonth } from '@/types/task';
 import { createTask, deleteTask, getTasks, overwriteTasks, updateTask } from '@/lib/taskStorage';
 
 export type TaskMonthFilter = 'all' | TaskMonth;
 export type TaskStatusFilter = 'all' | 'done' | 'not-done';
 
-function monthFromDueDate(dueDate?: string): TaskMonth | null {
-  if (!dueDate) return null;
-  const match = dueDate.match(/^\d{4}-(\d{2})-\d{2}$/);
-  if (!match) return null;
-
-  const month = Number(match[1]);
-  if ([12, 3, 6, 9].includes(month)) return 1;
-  if ([1, 4, 7, 10].includes(month)) return 2;
-  return 3;
-}
-
 function withDerivedMonthFromDueDate(data: TaskFormData): TaskFormData {
-  const derivedMonth = monthFromDueDate(data.dueDate);
-  if (derivedMonth === null) return data;
-  return { ...data, month: derivedMonth };
+  return { ...data, month: getTaskMonthFromDueDate(data.dueDate) };
 }
 
 function toDueDateValue(task: SeasonTask): string {
@@ -32,11 +20,10 @@ function toCompletedDateValue(task: SeasonTask): string {
 }
 
 function normalizeTaskForSave(task: SeasonTask, seasonId: string): SeasonTask {
-  const derivedMonth = monthFromDueDate(task.dueDate);
   return {
     ...task,
     seasonId,
-    month: derivedMonth ?? task.month,
+    month: getTaskMonthFromDueDate(task.dueDate),
     completedDate: task.completed ? task.completedDate : undefined,
   };
 }

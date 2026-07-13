@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { GitHubConfig } from '@/lib/github';
 import { getJsonFile, putFile } from '@/lib/github';
-import type { SeasonTask, TaskFormData } from '@/types/task';
+import { getTaskMonthFromDueDate, type SeasonTask, type TaskFormData } from '@/types/task';
 import { DEFAULT_SEASON_ID } from '@/types/season';
 
 const TASKS_PATH = 'tasks.json';
@@ -56,7 +56,8 @@ export async function createTask(config: GitHubConfig, data: TaskFormData, seaso
     id: uuidv4(),
     seasonId,
     completed: data.completed,
-    month: data.month,
+    //month: data.month,
+    month: getTaskMonthFromDueDate(data.dueDate),
     details: data.details,
     completedDate: data.completedDate,
     dueDate: data.dueDate,
