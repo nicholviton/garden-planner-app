@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { CalendarClock, CheckSquare, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
-import type { SeasonTask } from '@/types/task';
+import { useMemo, useState } from 'react';
+import { CalendarClock, CheckSquare, Loader2, Lock, Pencil, Plus, Trash2, X } from 'lucide-react';
+import type { SeasonTask, TaskFormData } from '@/types/task';
 import type { TaskMonthFilter, TaskStatusFilter } from '@/hooks/useTasks';
 import { TASK_MONTH_OPTIONS } from '@/types/task';
 import { Button } from '@/components/ui/Button';
@@ -9,19 +9,17 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { TaskForm } from '@/components/forms/TaskForm';
 
 interface TaskListProps {
-  tasks: SeasonTask[];
+  allTasks: SeasonTask[];
   totalCount: number;
   isLoading: boolean;
   isMutating: boolean;
   hasConfig: boolean;
+  seasonId: string;
   monthFilter: TaskMonthFilter;
   statusFilter: TaskStatusFilter;
   onMonthFilterChange: (value: TaskMonthFilter) => void;
   onStatusFilterChange: (value: TaskStatusFilter) => void;
-  onAddTask: (data: Omit<SeasonTask, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  onEditTask: (taskId: string, data: Omit<SeasonTask, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  onRemoveTask: (taskId: string) => Promise<void>;
-  onToggleTaskCompleted: (task: SeasonTask, completed: boolean) => Promise<void>;
+  onCommitTasks: (tasks: SeasonTask[]) => Promise<boolean>;
 }
 
 function monthLabel(month: number): string {
@@ -34,24 +32,158 @@ function isTaskOverdue(task: SeasonTask): boolean {
   return today >= task.dueDate;
 }
 
+function toDueDateValue(task: SeasonTask): string {
+  return task.dueDate ?? '9999-12-31';
+}
+
+function toCompletedDateValue(task: SeasonTask): string {
+  return task.completedDate ?? '9999-12-31';
+}
+
+function filterAndSortTasks(
+  tasks: SeasonTask[],
+  monthFilter: TaskMonthFilter,
+  statusFilter: TaskStatusFilter,
+): SeasonTask[] {
+  const monthFiltered = monthFilter === 'all'
+    ? tasks
+    : tasks.filter((task) => task.month === monthFilter);
+
+  const filtered = statusFilter === 'all'
+    ? monthFiltered
+    : monthFiltered.filter((task) => (statusFilter === 'done' ? task.completed : !task.completed));
+
+  return [...filtered].sort((a, b) => {
+    if (a.month !== b.month) return a.month - b.month;
+    if (a.completed !== b.completed) return a.completed ? -1 : 1;
+    const completedCmp = toCompletedDateValue(a).localeCompare(toCompletedDateValue(b));
+    if (completedCmp !== 0) return completedCmp;
+    const dueCmp = toDueDateValue(a).localeCompare(toDueDateValue(b));
+    if (dueCmp !== 0) return dueCmp;
+    return a.createdAt.localeCompare(b.createdAt);
+  });
+}
+
+function cloneTasks(tasks: SeasonTask[]): SeasonTask[] {
+  return tasks.map((task) => ({ ...task }));
+}
+
+function makeId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `task-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function TaskList({
-  tasks,
+  allTasks,
   totalCount,
   isLoading,
   isMutating,
   hasConfig,
+  seasonId,
   monthFilter,
   statusFilter,
   onMonthFilterChange,
   onStatusFilterChange,
-  onAddTask,
-  onEditTask,
-  onRemoveTask,
-  onToggleTaskCompleted,
+  onCommitTasks,
 }: TaskListProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftTasks, setDraftTasks] = useState<SeasonTask[] | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<SeasonTask | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<SeasonTask | null>(null);
+
+  const workingTasks = isEditing && draftTasks ? draftTasks : allTasks;
+  const tasks = useMemo(
+    () => filterAndSortTasks(workingTasks, monthFilter, statusFilter),
+    [workingTasks, monthFilter, statusFilter],
+  );
+
+  function closeTaskModals() {
+    setIsAddOpen(false);
+    setEditingTask(null);
+    setConfirmDelete(null);
+  }
+
+  function startEditMode() {
+    setDraftTasks(cloneTasks(allTasks));
+    setIsEditing(true);
+  }
+
+  function cancelEditMode() {
+    setDraftTasks(null);
+    setIsEditing(false);
+    closeTaskModals();
+  }
+
+  async function doneEditMode() {
+    if (!draftTasks) return;
+    const success = await onCommitTasks(draftTasks);
+    if (success) {
+      setDraftTasks(null);
+      setIsEditing(false);
+      closeTaskModals();
+    }
+  }
+
+  function patchDraftTask(taskId: string, patch: Partial<SeasonTask>) {
+    setDraftTasks((prev) => {
+      if (!prev) return prev;
+      const now = new Date().toISOString();
+      return prev.map((task) => {
+        if (task.id !== taskId) return task;
+        return {
+          ...task,
+          ...patch,
+          updatedAt: now,
+        };
+      });
+    });
+  }
+
+  function handleAddLocalTask(data: TaskFormData) {
+    const now = new Date().toISOString();
+    const task: SeasonTask = {
+      id: makeId(),
+      seasonId,
+      completed: data.completed,
+      completedDate: data.completed ? data.completedDate ?? new Date().toISOString().slice(0, 10) : undefined,
+      month: data.month,
+      details: data.details,
+      dueDate: data.dueDate,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    setDraftTasks((prev) => (prev ? [...prev, task] : [task]));
+    setIsAddOpen(false);
+  }
+
+  function handleEditLocalTask(taskId: string, data: TaskFormData) {
+    patchDraftTask(taskId, {
+      completed: data.completed,
+      completedDate: data.completed ? data.completedDate ?? new Date().toISOString().slice(0, 10) : undefined,
+      month: data.month,
+      details: data.details,
+      dueDate: data.dueDate,
+      seasonId,
+    });
+    setEditingTask(null);
+  }
+
+  function handleToggleLocalCompleted(task: SeasonTask, completed: boolean) {
+    patchDraftTask(task.id, {
+      completed,
+      completedDate: completed
+        ? task.completedDate ?? new Date().toISOString().slice(0, 10)
+        : undefined,
+    });
+  }
+
+  function handleRemoveLocalTask(taskId: string) {
+    setDraftTasks((prev) => prev ? prev.filter((task) => task.id !== taskId) : prev);
+  }
 
   if (isLoading) {
     return (
@@ -74,6 +206,28 @@ export function TaskList({
           </div>
 
           <div className="flex items-center gap-2">
+            {isEditing ? (
+              <>
+                <Button variant="primary" size="md" onClick={() => setIsAddOpen(true)} disabled={!hasConfig || isMutating}>
+                  <Plus className="w-4 h-4" />
+                  Add Task
+                </Button>
+                <Button variant="secondary" size="md" onClick={cancelEditMode} disabled={isMutating}>
+                  <X className="w-4 h-4" />
+                  Cancel
+                </Button>
+                <Button variant="primary" size="md" onClick={() => { doneEditMode().catch(() => {}); }} loading={isMutating}>
+                  <Lock className="w-4 h-4" />
+                  Done
+                </Button>
+              </>
+            ) : (
+              <Button variant="secondary" size="md" onClick={startEditMode} disabled={!hasConfig || isMutating}>
+                <Pencil className="w-4 h-4" />
+                Edit Tasks
+              </Button>
+            )}
+
             <label className="text-sm text-gray-600" htmlFor="task-month-filter">Filter month</label>
             <select
               id="task-month-filter"
@@ -106,13 +260,15 @@ export function TaskList({
               <option value="done">Done</option>
               <option value="not-done">Not done</option>
             </select>
-
-            <Button variant="primary" size="md" onClick={() => setIsAddOpen(true)} disabled={!hasConfig || isMutating}>
-              <Plus className="w-4 h-4" />
-              Add Task
-            </Button>
           </div>
         </div>
+
+        {isEditing && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-garden-50 border border-garden-200 text-sm text-garden-700">
+            <Pencil className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Editing - changes are local until you click <strong>Done</strong>.</span>
+          </div>
+        )}
 
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
@@ -141,8 +297,8 @@ export function TaskList({
                         <input
                           type="checkbox"
                           checked={task.completed}
-                          onChange={(e) => { onToggleTaskCompleted(task, e.target.checked).catch(() => {}); }}
-                          disabled={isMutating}
+                          onChange={(e) => handleToggleLocalCompleted(task, e.target.checked)}
+                          disabled={!isEditing || isMutating}
                           className="h-4 w-4 rounded border-gray-300 text-garden-600 focus:ring-garden-500"
                         />
                       </td>
@@ -162,7 +318,8 @@ export function TaskList({
                           <button
                             type="button"
                             onClick={() => setEditingTask(task)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-garden-600 hover:bg-garden-50 transition-colors"
+                            disabled={!isEditing || isMutating}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-garden-600 hover:bg-garden-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Edit task"
                           >
                             <Pencil className="w-4 h-4" />
@@ -170,7 +327,8 @@ export function TaskList({
                           <button
                             type="button"
                             onClick={() => setConfirmDelete(task)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            disabled={!isEditing || isMutating}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Delete task"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -189,9 +347,8 @@ export function TaskList({
       {isAddOpen && (
         <Modal title="New Task" onClose={() => setIsAddOpen(false)}>
           <TaskForm
-            onSubmit={async (data) => {
-              await onAddTask(data);
-              setIsAddOpen(false);
+            onSubmit={(data) => {
+              handleAddLocalTask(data);
             }}
             onClose={() => setIsAddOpen(false)}
             loading={isMutating}
@@ -203,9 +360,8 @@ export function TaskList({
         <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
           <TaskForm
             task={editingTask}
-            onSubmit={async (data) => {
-              await onEditTask(editingTask.id, data);
-              setEditingTask(null);
+            onSubmit={(data) => {
+              handleEditLocalTask(editingTask.id, data);
             }}
             onClose={() => setEditingTask(null)}
             loading={isMutating}
@@ -218,7 +374,7 @@ export function TaskList({
           title="Delete Task?"
           message="This task will be permanently deleted."
           onConfirm={() => {
-            onRemoveTask(confirmDelete.id).catch(() => {});
+            handleRemoveLocalTask(confirmDelete.id);
             setConfirmDelete(null);
           }}
           onCancel={() => setConfirmDelete(null)}

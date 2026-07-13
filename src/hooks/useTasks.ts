@@ -1,13 +1,44 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { GitHubConfig } from '@/lib/github';
 import type { SeasonTask, TaskFormData, TaskMonth } from '@/types/task';
-import { createTask, deleteTask, getTasks, updateTask } from '@/lib/taskStorage';
+import { createTask, deleteTask, getTasks, overwriteTasks, updateTask } from '@/lib/taskStorage';
 
 export type TaskMonthFilter = 'all' | TaskMonth;
 export type TaskStatusFilter = 'all' | 'done' | 'not-done';
 
+function monthFromDueDate(dueDate?: string): TaskMonth | null {
+  if (!dueDate) return null;
+  const match = dueDate.match(/^\d{4}-(\d{2})-\d{2}$/);
+  if (!match) return null;
+
+  const month = Number(match[1]);
+  if ([12, 3, 6, 9].includes(month)) return 1;
+  if ([1, 4, 7, 10].includes(month)) return 2;
+  return 3;
+}
+
+function withDerivedMonthFromDueDate(data: TaskFormData): TaskFormData {
+  const derivedMonth = monthFromDueDate(data.dueDate);
+  if (derivedMonth === null) return data;
+  return { ...data, month: derivedMonth };
+}
+
 function toDueDateValue(task: SeasonTask): string {
   return task.dueDate ?? '9999-12-31';
+}
+
+function toCompletedDateValue(task: SeasonTask): string {
+  return task.completedDate ?? '9999-12-31';
+}
+
+function normalizeTaskForSave(task: SeasonTask, seasonId: string): SeasonTask {
+  const derivedMonth = monthFromDueDate(task.dueDate);
+  return {
+    ...task,
+    seasonId,
+    month: derivedMonth ?? task.month,
+    completedDate: task.completed ? task.completedDate : undefined,
+  };
 }
 
 export function useTasks(config: GitHubConfig | null, seasonId: string) {
@@ -49,7 +80,7 @@ export function useTasks(config: GitHubConfig | null, seasonId: string) {
     setIsMutating(true);
     setError(null);
     try {
-      await createTask(config, data, seasonId);
+      await createTask(config, withDerivedMonthFromDueDate(data), seasonId);
       await loadTasks(config, true);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -63,7 +94,7 @@ export function useTasks(config: GitHubConfig | null, seasonId: string) {
     setIsMutating(true);
     setError(null);
     try {
-      await updateTask(config, taskId, data, seasonId);
+      await updateTask(config, taskId, withDerivedMonthFromDueDate(data), seasonId);
       await loadTasks(config, true);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -101,6 +132,23 @@ export function useTasks(config: GitHubConfig | null, seasonId: string) {
     });
   }
 
+  async function commitTasks(draftTasks: SeasonTask[]): Promise<boolean> {
+    if (!config) return false;
+    setIsMutating(true);
+    setError(null);
+    try {
+      const normalized = draftTasks.map((task) => normalizeTaskForSave(task, seasonId));
+      await overwriteTasks(config, normalized, seasonId);
+      await loadTasks(config, true);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return false;
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
   const displayTasks = useMemo(() => {
     const monthFiltered = monthFilter === 'all'
       ? tasks
@@ -112,6 +160,9 @@ export function useTasks(config: GitHubConfig | null, seasonId: string) {
 
     return [...filtered].sort((a, b) => {
       if (a.month !== b.month) return a.month - b.month;
+      if (a.completed !== b.completed) return a.completed ? -1 : 1;
+      const completedCmp = toCompletedDateValue(a).localeCompare(toCompletedDateValue(b));
+      if (completedCmp !== 0) return completedCmp;
       const dueCmp = toDueDateValue(a).localeCompare(toDueDateValue(b));
       if (dueCmp !== 0) return dueCmp;
       return a.createdAt.localeCompare(b.createdAt);
@@ -119,6 +170,7 @@ export function useTasks(config: GitHubConfig | null, seasonId: string) {
   }, [tasks, monthFilter, statusFilter]);
 
   return {
+    allTasks: tasks,
     tasks: displayTasks,
     totalCount: tasks.length,
     isLoading,
@@ -132,5 +184,6 @@ export function useTasks(config: GitHubConfig | null, seasonId: string) {
     editTask,
     removeTask,
     toggleTaskCompleted,
+    commitTasks,
   };
 }

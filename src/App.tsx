@@ -106,7 +106,7 @@ export default function App() {
 
   // Tasks
   const {
-    tasks,
+    allTasks,
     totalCount: totalTasks,
     isLoading: isTasksLoading,
     isMutating: isTasksMutating,
@@ -115,10 +115,7 @@ export default function App() {
     setMonthFilter,
     statusFilter,
     setStatusFilter,
-    addTask,
-    editTask,
-    removeTask,
-    toggleTaskCompleted,
+    commitTasks,
   } = useTasks(config, selectedSeasonId);
 
   useEffect(() => {
@@ -397,19 +394,17 @@ export default function App() {
         {activeTab === 'tasks' && (
           <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
             <TaskList
-              tasks={tasks}
+              allTasks={allTasks}
               totalCount={totalTasks}
               isLoading={isTasksLoading}
               isMutating={isTasksMutating}
               hasConfig={!!config}
+              seasonId={selectedSeasonId}
               monthFilter={monthFilter}
               statusFilter={statusFilter}
               onMonthFilterChange={setMonthFilter}
               onStatusFilterChange={setStatusFilter}
-              onAddTask={addTask}
-              onEditTask={editTask}
-              onRemoveTask={removeTask}
-              onToggleTaskCompleted={toggleTaskCompleted}
+              onCommitTasks={commitTasks}
             />
           </main>
         )}
