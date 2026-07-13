@@ -42,7 +42,7 @@ import { TaskList } from '@/components/tasks/TaskList';
 export default function App() {
   const [config, setConfig] = useState<GitHubConfig | null>(loadConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(!config);
-  const [activeTab, setActiveTab] = useState<'notes' | 'layout' | 'plants' | 'tasks'>('notes');
+  const [activeTab, setActiveTab] = useState<'notes' | 'layout' | 'plants' | 'tasks'>('tasks');
 
   // Seasons
   const {
