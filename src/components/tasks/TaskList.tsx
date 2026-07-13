@@ -22,10 +22,6 @@ interface TaskListProps {
   onCommitTasks: (tasks: SeasonTask[]) => Promise<boolean>;
 }
 
-function monthLabel(month: number): string {
-  return TASK_MONTH_OPTIONS.find((option) => option.value === month)?.label ?? 'Not set';
-}
-
 function isTaskOverdue(task: SeasonTask): boolean {
   if (task.completed || !task.dueDate) return false;
   const today = new Date().toISOString().slice(0, 10);
@@ -281,10 +277,9 @@ export function TaskList({
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   <th className="px-4 py-3 whitespace-nowrap">Done</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Completed Date</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Month</th>
                   <th className="px-4 py-3 w-full">Task</th>
                   <th className="px-4 py-3 whitespace-nowrap">Due Date</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Completed Date</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -302,8 +297,6 @@ export function TaskList({
                           className="h-4 w-4 rounded border-gray-300 text-garden-600 focus:ring-garden-500"
                         />
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{task.completedDate ?? '—'}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{monthLabel(task.month)}</td>
                       <td className={`px-4 py-3 ${task.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
                         {task.details}
                       </td>
@@ -313,6 +306,7 @@ export function TaskList({
                           {task.dueDate ?? '—'}
                         </span>
                       </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{task.completedDate ?? '—'}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1">
                           <button
