@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarClock, CheckSquare, Loader2, Lock, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { CheckSquare, Loader2, Lock, Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { SeasonTask, TaskFormData, TaskMonth } from '@/types/task';
 import type { TaskMonthFilter, TaskStatusFilter } from '@/hooks/useTasks';
 import { TASK_MONTH_OPTIONS } from '@/types/task';
@@ -35,6 +35,23 @@ function toDueDateValue(task: SeasonTask): string {
 
 function toCompletedDateValue(task: SeasonTask): string {
   return task.completedDate ?? '9999-12-31';
+}
+
+function formatMonthDay(dateValue?: string): string {
+  if (!dateValue) return '—';
+  const match = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return dateValue;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
 }
 
 function filterAndSortTasks(
@@ -297,10 +314,10 @@ export function TaskList({
             <table className="w-full text-sm text-left">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  <th className="px-4 py-3 whitespace-nowrap">Done</th>
+                  <th className="px-4 py-3 whitespace-nowrap"></th>
                   <th className="px-4 py-3 w-full">Task</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Due Date</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Completed Date</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Due</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Done</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -323,32 +340,33 @@ export function TaskList({
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap ${overdue ? 'text-red-700 font-semibold' : 'text-gray-700'}`}>
                         <span className="inline-flex items-center gap-1">
-                          {task.dueDate ? <CalendarClock className="w-3.5 h-3.5" /> : null}
-                          {task.dueDate ?? '—'}
+                          {formatMonthDay(task.dueDate)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{task.completedDate ?? '—'}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{formatMonthDay(task.completedDate)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setEditingTask(task)}
-                            disabled={!isEditing || isMutating}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-garden-600 hover:bg-garden-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                            aria-label="Edit task"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDelete(task)}
-                            disabled={!isEditing || isMutating}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                            aria-label="Delete task"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        {isEditing ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingTask(task)}
+                              disabled={isMutating}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-garden-600 hover:bg-garden-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                              aria-label="Edit task"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDelete(task)}
+                              disabled={isMutating}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                              aria-label="Delete task"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : null}
                       </td>
                     </tr>
                   );
