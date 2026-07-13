@@ -5,6 +5,7 @@ import type { GitHubConfig } from '@/lib/github';
 import { useNotes } from '@/hooks/useNotes';
 import { useLayout } from '@/hooks/useLayout';
 import { usePlantTypes } from '@/hooks/usePlantTypes';
+import { useTasks } from '@/hooks/useTasks';
 import { useSeasons } from '@/hooks/useSeasons';
 import { GitHubConfigContext } from '@/contexts/GitHubConfigContext';
 import type { GardenNote } from '@/types/note';
@@ -36,11 +37,12 @@ import { ChangesSummary } from '@/components/layout/ChangesSummary';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { PlantTypeList } from '@/components/plants/PlantTypeList';
+import { TaskList } from '@/components/tasks/TaskList';
 
 export default function App() {
   const [config, setConfig] = useState<GitHubConfig | null>(loadConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(!config);
-  const [activeTab, setActiveTab] = useState<'notes' | 'layout' | 'plants'>('notes');
+  const [activeTab, setActiveTab] = useState<'notes' | 'layout' | 'plants' | 'tasks'>('notes');
 
   // Seasons
   const {
@@ -101,6 +103,23 @@ export default function App() {
     commitPlantTypes,
     reloadPlantTypes,
   } = usePlantTypes(config, selectedSeasonId);
+
+  // Tasks
+  const {
+    tasks,
+    totalCount: totalTasks,
+    isLoading: isTasksLoading,
+    isMutating: isTasksMutating,
+    error: tasksError,
+    monthFilter,
+    setMonthFilter,
+    statusFilter,
+    setStatusFilter,
+    addTask,
+    editTask,
+    removeTask,
+    toggleTaskCompleted,
+  } = useTasks(config, selectedSeasonId);
 
   useEffect(() => {
     if (activeTab === 'plants') reloadPlantTypes();
@@ -259,7 +278,8 @@ export default function App() {
     seasonsError ||
     (activeTab === 'notes' ? error :
     activeTab === 'layout' ? layoutError :
-    plantTypesError);
+    activeTab === 'plants' ? plantTypesError :
+    tasksError);
 
   return (
     <GitHubConfigContext.Provider value={config}>
@@ -370,6 +390,26 @@ export default function App() {
               isMutating={isPlantTypesMutating}
               hasConfig={!!config}
               commitPlantTypes={commitPlantTypes}
+            />
+          </main>
+        )}
+
+        {activeTab === 'tasks' && (
+          <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
+            <TaskList
+              tasks={tasks}
+              totalCount={totalTasks}
+              isLoading={isTasksLoading}
+              isMutating={isTasksMutating}
+              hasConfig={!!config}
+              monthFilter={monthFilter}
+              statusFilter={statusFilter}
+              onMonthFilterChange={setMonthFilter}
+              onStatusFilterChange={setStatusFilter}
+              onAddTask={addTask}
+              onEditTask={editTask}
+              onRemoveTask={removeTask}
+              onToggleTaskCompleted={toggleTaskCompleted}
             />
           </main>
         )}

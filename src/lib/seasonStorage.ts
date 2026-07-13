@@ -16,6 +16,10 @@ function seasonPlantTypesPath(seasonId: string): string {
   return `seasons/${seasonId}/plant-types.json`;
 }
 
+function seasonTasksPath(seasonId: string): string {
+  return `seasons/${seasonId}/tasks.json`;
+}
+
 function jsonToBase64(data: unknown): string {
   return btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
 }
@@ -60,6 +64,7 @@ async function initializeSeasonFiles(
   await overwriteBeds(config, clonedBeds, seasonId);
   await putFile(config, seasonNotesPath(seasonId), jsonToBase64([]), `Initialize notes for season ${seasonId}`);
   await putFile(config, seasonPlantTypesPath(seasonId), jsonToBase64([]), `Initialize plant types for season ${seasonId}`);
+  await putFile(config, seasonTasksPath(seasonId), jsonToBase64([]), `Initialize tasks for season ${seasonId}`);
 }
 
 export async function getSeasons(config: GitHubConfig, forceLoad: boolean = false): Promise<Season[]> {
