@@ -92,5 +92,21 @@ export function usePlantTypes(config: GitHubConfig | null, seasonId: string) {
     if (config) loadTypes(config).catch(() => {});
   }
 
-  return { plantTypes, isLoading, isMutating, error, addPlantType, editPlantType, removePlantType, commitPlantTypes, reloadPlantTypes };
+  async function loadPlantTypesForSeason(sourceSeasonId: string): Promise<PlantType[]> {
+    if (!config) return [];
+    return getPlantTypes(config, sourceSeasonId, true);
+  }
+
+  return {
+    plantTypes,
+    isLoading,
+    isMutating,
+    error,
+    addPlantType,
+    editPlantType,
+    removePlantType,
+    commitPlantTypes,
+    reloadPlantTypes,
+    loadPlantTypesForSeason,
+  };
 }

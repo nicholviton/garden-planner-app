@@ -102,6 +102,7 @@ export default function App() {
     error: plantTypesError,
     commitPlantTypes,
     reloadPlantTypes,
+    loadPlantTypesForSeason,
   } = usePlantTypes(config, selectedSeasonId);
 
   // Tasks
@@ -382,11 +383,15 @@ export default function App() {
         {activeTab === 'plants' && (
           <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
             <PlantTypeList
+              key={selectedSeasonId}
               plantTypes={plantTypes}
               isLoading={isPlantTypesLoading}
               isMutating={isPlantTypesMutating}
               hasConfig={!!config}
+              seasons={seasons}
+              selectedSeasonId={selectedSeasonId}
               commitPlantTypes={commitPlantTypes}
+              loadPlantTypesForSeason={loadPlantTypesForSeason}
             />
           </main>
         )}

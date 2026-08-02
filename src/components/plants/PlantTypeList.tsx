@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Plus, Pencil, Trash2, Loader2, Lock, X, Table, CalendarDays } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Lock, X, Table, CalendarDays, Copy } from 'lucide-react';
 import type { PlantType, PlantTypeFormData } from '@/types/plantType';
+import type { Season } from '@/types/season';
 import { getSeedInfo, getTransplantInfo, computeHarvestDate } from '@/types/plantType';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -14,7 +15,10 @@ interface PlantTypeListProps {
   isLoading: boolean;
   isMutating: boolean;
   hasConfig: boolean;
+  seasons: Season[];
+  selectedSeasonId: string;
   commitPlantTypes: (types: PlantType[]) => Promise<boolean>;
+  loadPlantTypesForSeason: (seasonId: string) => Promise<PlantType[]>;
 }
 
 export function PlantTypeList({
@@ -22,18 +26,75 @@ export function PlantTypeList({
   isLoading,
   isMutating,
   hasConfig,
+  seasons,
+  selectedSeasonId,
   commitPlantTypes,
+  loadPlantTypesForSeason,
 }: PlantTypeListProps) {
   const [draftTypes, setDraftTypes] = useState<PlantType[] | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingType, setEditingType] = useState<PlantType | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<PlantType | null>(null);
+  const [isCopyOpen, setIsCopyOpen] = useState(false);
+  const [sourceSeasonId, setSourceSeasonId] = useState('');
+  const [sourceTypes, setSourceTypes] = useState<PlantType[]>([]);
+  const [selectedTypeIds, setSelectedTypeIds] = useState<Set<string>>(new Set());
+  const [isLoadingSource, setIsLoadingSource] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   const isEditing = draftTypes !== null;
   const displayTypes = (isEditing ? draftTypes : plantTypes)
     .slice()
     .sort((a, b) => a.plantName.localeCompare(b.plantName));
+
+  const sourceSeasons = seasons.filter((season) => season.id !== selectedSeasonId);
+
+  function typeKey(type: PlantType) {
+    return [type.plantName, type.genus, type.species, type.year]
+      .map((value) => String(value).trim().toLocaleLowerCase())
+      .join('|');
+  }
+
+  const existingTypeKeys = new Set((draftTypes ?? plantTypes).map(typeKey));
+  const availableSourceTypes = sourceTypes.filter((type) => !existingTypeKeys.has(typeKey(type)));
+
+  async function handleSourceSeasonChange(seasonId: string) {
+    setSourceSeasonId(seasonId);
+    setSourceTypes([]);
+    setSelectedTypeIds(new Set());
+    setCopyError(null);
+    if (!seasonId) return;
+
+    setIsLoadingSource(true);
+    try {
+      setSourceTypes(await loadPlantTypesForSeason(seasonId));
+    } catch (err) {
+      setCopyError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsLoadingSource(false);
+    }
+  }
+
+  function handleToggleType(id: string) {
+    setSelectedTypeIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleCopyTypes() {
+    const now = new Date().toISOString();
+    const copies = sourceTypes
+      .filter((type) => selectedTypeIds.has(type.id) && !existingTypeKeys.has(typeKey(type)))
+      .map((type) => ({ ...type, id: uuidv4(), createdAt: now }));
+    if (copies.length === 0) return;
+
+    setDraftTypes((previous) => previous ? [...previous, ...copies] : previous);
+    setIsCopyOpen(false);
+  }
 
   function handleStartEdit() {
     setDraftTypes(JSON.parse(JSON.stringify(plantTypes)));
@@ -48,6 +109,7 @@ export function PlantTypeList({
   function handleCancelEdit() {
     setDraftTypes(null);
     setIsAddOpen(false);
+    setIsCopyOpen(false);
     setEditingType(null);
     setConfirmDelete(null);
   }
@@ -118,6 +180,15 @@ export function PlantTypeList({
               <Button variant="primary" size="md" onClick={() => setIsAddOpen(true)} disabled={isMutating}>
                 <Plus className="w-4 h-4" />
                 Add Plant Type
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setIsCopyOpen(true)}
+                disabled={isMutating || sourceSeasons.length === 0}
+              >
+                <Copy className="w-4 h-4" />
+                Copy from Season
               </Button>
               <Button variant="secondary" size="md" onClick={handleCancelEdit} disabled={isMutating}>
                 <X className="w-4 h-4" />
@@ -291,6 +362,94 @@ export function PlantTypeList({
           onConfirm={handleDelete}
           onCancel={() => setConfirmDelete(null)}
         />
+      )}
+
+      {isCopyOpen && (
+        <Modal title="Copy Plant Types" onClose={() => setIsCopyOpen(false)}>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="copy-source-season" className="text-sm font-medium text-gray-700">
+                Copy from
+              </label>
+              <select
+                id="copy-source-season"
+                value={sourceSeasonId}
+                onChange={(event) => handleSourceSeasonChange(event.target.value)}
+                disabled={isLoadingSource || isMutating}
+                className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-garden-500 disabled:bg-gray-100"
+              >
+                <option value="">Choose a season</option>
+                {sourceSeasons.map((season) => (
+                  <option key={season.id} value={season.id}>{season.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {copyError && <p className="text-sm text-red-700">{copyError}</p>}
+
+            {isLoadingSource ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-sm text-garden-700">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Loading plant types…
+              </div>
+            ) : sourceSeasonId && sourceTypes.length === 0 ? (
+              <p className="py-8 text-center text-sm text-gray-500">This season has no plant types.</p>
+            ) : sourceTypes.length > 0 ? (
+              <div className="rounded-lg border border-gray-200 overflow-hidden">
+                <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 px-3 py-2">
+                  <span className="text-xs font-semibold uppercase text-gray-500">Plant types</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTypeIds(new Set(availableSourceTypes.map((type) => type.id)))}
+                    className="text-xs font-medium text-garden-700 hover:text-garden-800"
+                  >
+                    Select all available
+                  </button>
+                </div>
+                <div className="max-h-72 overflow-y-auto divide-y divide-gray-100">
+                  {sourceTypes
+                    .slice()
+                    .sort((a, b) => a.plantName.localeCompare(b.plantName))
+                    .map((type) => {
+                      const alreadyExists = existingTypeKeys.has(typeKey(type));
+                      return (
+                        <label
+                          key={type.id}
+                          className={`flex items-center gap-3 px-3 py-2.5 ${alreadyExists ? 'bg-gray-50 text-gray-400' : 'cursor-pointer hover:bg-garden-50'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTypeIds.has(type.id)}
+                            onChange={() => handleToggleType(type.id)}
+                            disabled={alreadyExists || isMutating}
+                            className="h-4 w-4 rounded border-gray-300 text-garden-600 focus:ring-garden-500"
+                          />
+                          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: type.color }} />
+                          <span className="flex-1 text-sm font-medium">{type.plantName}</span>
+                          <span className="text-xs">{alreadyExists ? 'Already in this season' : type.year}</span>
+                        </label>
+                      );
+                    })}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
+              <Button variant="secondary" onClick={() => setIsCopyOpen(false)} disabled={isMutating}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleCopyTypes}
+                loading={isMutating}
+                disabled={selectedTypeIds.size === 0}
+              >
+                <Copy className="w-4 h-4" />
+                Copy {selectedTypeIds.size || ''}
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </>
   );
