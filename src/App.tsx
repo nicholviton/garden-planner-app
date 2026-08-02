@@ -15,6 +15,7 @@ import {
   draftAddBed, draftEditBed, draftDeleteBed,
   draftAddPlanting, draftEditPlanting, draftDeletePlanting,
   draftMovePlanting, draftAddPlantingFromType,
+  draftDeletePlantingsByType, draftAddPlantTypeToRow,
   draftAddFixture, draftEditFixture, draftDeleteFixture,
   computeDiff, countChanges,
 } from '@/lib/layoutDraft';
@@ -32,6 +33,7 @@ import { NoteForm } from '@/components/forms/NoteForm';
 import { BedForm } from '@/components/forms/BedForm';
 import { PlantingForm } from '@/components/forms/PlantingForm';
 import { FixtureForm } from '@/components/forms/FixtureForm';
+import { BulkPlantForm, DeletePlantTypeForm } from '@/components/forms/BedPlantingToolsForm';
 import { LayoutView } from '@/components/layout/LayoutView';
 import { ChangesSummary } from '@/components/layout/ChangesSummary';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -93,6 +95,8 @@ export default function App() {
     bed: GardenBed;
     fixture?: Fixture;
   } | null>(null);
+  const [bulkPlantingBed, setBulkPlantingBed] = useState<GardenBed | null>(null);
+  const [deletingPlantTypeBed, setDeletingPlantTypeBed] = useState<GardenBed | null>(null);
 
   // Plant Types
   const {
@@ -177,6 +181,8 @@ export default function App() {
     setConfirmDeleteBed(null);
     setEditingPlanting(null);
     setEditingFixture(null);
+    setBulkPlantingBed(null);
+    setDeletingPlantTypeBed(null);
   }
 
   // ── Layout mutation handlers (all update draft synchronously) ──────────────
@@ -235,6 +241,35 @@ export default function App() {
   function handleAddPlantingToBed(bed: GardenBed) {
     const { row, col } = findPlacement(bed, selectedYear, 1);
     setEditingPlanting({ bed, row, col });
+  }
+
+  function handleDeletePlantTypeFromBed(plantName: string) {
+    if (!deletingPlantTypeBed) return;
+    setDraftBeds((prev) => prev
+      ? draftDeletePlantingsByType(prev, deletingPlantTypeBed.id, selectedYear, plantName)
+      : prev);
+    setDeletingPlantTypeBed(null);
+  }
+
+  function handleAddPlantTypeToRow(
+    plantType: PlantType,
+    row: number,
+    startCol: number,
+    endCol: number,
+  ) {
+    if (!bulkPlantingBed) return;
+    setDraftBeds((prev) => prev
+      ? draftAddPlantTypeToRow(
+          prev,
+          bulkPlantingBed.id,
+          selectedYear,
+          plantType,
+          row,
+          startCol,
+          endCol,
+        )
+      : prev);
+    setBulkPlantingBed(null);
   }
 
   function handleFixtureSubmit(data: FixtureFormData) {
@@ -371,6 +406,8 @@ export default function App() {
               onEmptyCellClick={(bed, row, col) => setEditingPlanting({ bed, row, col })}
               onPlantingClick={(bed, planting) => setEditingPlanting({ bed, planting, row: planting.row, col: planting.col })}
               onMovePlanting={handleMovePlanting}
+              onBulkPlant={setBulkPlantingBed}
+              onDeletePlantType={setDeletingPlantTypeBed}
               onQuickPlant={handleQuickPlant}
               onDeletePlanting={handleDeletePlanting}
               onAddPlantingToBed={handleAddPlantingToBed}
@@ -493,6 +530,34 @@ export default function App() {
               onSubmit={handlePlantingSubmit}
               onDelete={handlePlantingDelete}
               onClose={() => setEditingPlanting(null)}
+            />
+          </Modal>
+        )}
+
+        {bulkPlantingBed && (
+          <Modal
+            title={`Bulk Plant: ${bulkPlantingBed.name}`}
+            onClose={() => setBulkPlantingBed(null)}
+          >
+            <BulkPlantForm
+              bed={bulkPlantingBed}
+              plantTypes={plantTypes}
+              onAddRow={handleAddPlantTypeToRow}
+              onClose={() => setBulkPlantingBed(null)}
+            />
+          </Modal>
+        )}
+
+        {deletingPlantTypeBed && (
+          <Modal
+            title={`Delete a Plant Type: ${deletingPlantTypeBed.name}`}
+            onClose={() => setDeletingPlantTypeBed(null)}
+          >
+            <DeletePlantTypeForm
+              bed={deletingPlantTypeBed}
+              year={selectedYear}
+              onDeleteType={handleDeletePlantTypeFromBed}
+              onClose={() => setDeletingPlantTypeBed(null)}
             />
           </Modal>
         )}

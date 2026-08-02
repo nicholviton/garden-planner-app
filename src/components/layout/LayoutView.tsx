@@ -30,6 +30,8 @@ interface LayoutViewProps {
   onEmptyCellClick: (bed: GardenBed, row: number, col: number) => void;
   onPlantingClick: (bed: GardenBed, planting: Planting) => void;
   onMovePlanting: (bed: GardenBed, planting: Planting, newRow: number, newCol: number) => void;
+  onBulkPlant: (bed: GardenBed) => void;
+  onDeletePlantType: (bed: GardenBed) => void;
   onQuickPlant: (plantType: PlantType, bedId: string) => void;
   onDeletePlanting: (bed: GardenBed, planting: Planting) => void;
   onAddPlantingToBed: (bed: GardenBed) => void;
@@ -58,6 +60,8 @@ export function LayoutView({
   onEmptyCellClick,
   onPlantingClick,
   onMovePlanting,
+  onBulkPlant,
+  onDeletePlantType,
   onQuickPlant,
   onDeletePlanting,
   onAddPlantingToBed,
@@ -250,6 +254,14 @@ export function LayoutView({
           isMutating={isMutating}
           hasConfig={hasConfig}
           onPlant={onQuickPlant}
+          onBulkPlant={(bedId) => {
+            const bed = beds.find((candidate) => candidate.id === bedId);
+            if (bed) onBulkPlant(bed);
+          }}
+          onDeletePlantType={(bedId) => {
+            const bed = beds.find((candidate) => candidate.id === bedId);
+            if (bed) onDeletePlantType(bed);
+          }}
         />
       )}
 

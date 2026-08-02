@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sprout } from 'lucide-react';
+import { ListPlus, Sprout, Trash2 } from 'lucide-react';
 import type { PlantType } from '@/types/plantType';
 import { Button } from '@/components/ui/Button';
 
@@ -9,12 +9,14 @@ interface QuickPlantProps {
   isMutating: boolean;
   hasConfig: boolean;
   onPlant: (plantType: PlantType, bedId: string) => void;
+  onBulkPlant: (bedId: string) => void;
+  onDeletePlantType: (bedId: string) => void;
 }
 
-export function QuickPlant({ plantTypes, selectedBedId, isMutating, hasConfig, onPlant }: QuickPlantProps) {
+export function QuickPlant({ plantTypes, selectedBedId, isMutating, hasConfig, onPlant, onBulkPlant, onDeletePlantType }: QuickPlantProps) {
   const [selectedTypeId, setSelectedTypeId] = useState('');
 
-  if (plantTypes.length === 0 || !selectedBedId) return null;
+  if (!selectedBedId) return null;
 
   const selectedType = plantTypes.find((t) => t.id === selectedTypeId) ?? null;
   const canPlant = !!selectedType && !!selectedBedId && !isMutating && hasConfig;
@@ -32,6 +34,7 @@ export function QuickPlant({ plantTypes, selectedBedId, isMutating, hasConfig, o
       <select
         value={selectedTypeId}
         onChange={(e) => setSelectedTypeId(e.target.value)}
+        disabled={plantTypes.length === 0}
         className="flex-1 min-w-[140px] max-w-[300px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-garden-500"
       >
         <option value="">Select plant type…</option>
@@ -50,6 +53,24 @@ export function QuickPlant({ plantTypes, selectedBedId, isMutating, hasConfig, o
         loading={isMutating}
       >
         Plant
+      </Button>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => onBulkPlant(selectedBedId)}
+        disabled={isMutating}
+      >
+        <ListPlus className="w-4 h-4" />
+        Bulk Plant
+      </Button>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => onDeletePlantType(selectedBedId)}
+        disabled={isMutating}
+      >
+        <Trash2 className="w-4 h-4" />
+        Delete a Plant Type
       </Button>
     </div>
   );

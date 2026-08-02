@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { GardenBed, Planting, BedFormData, PlantingFormData, Fixture, FixtureFormData } from '@/types/layout';
+import { bedGridCols, bedGridRows, fixtureBounds } from '@/types/layout';
 import type { PlantType } from '@/types/plantType';
 import { findPlacement } from '@/lib/layoutStorage';
 
@@ -97,6 +98,126 @@ export function draftDeletePlanting(beds: GardenBed[], bedId: string, plantingId
       ? b
       : { ...b, plantings: b.plantings.filter((p) => p.id !== plantingId), updatedAt: new Date().toISOString() },
   );
+}
+
+export function draftDeletePlantingsByType(
+  beds: GardenBed[],
+  bedId: string,
+  year: number,
+  plantName: string,
+): GardenBed[] {
+  return beds.map((bed) => {
+    if (bed.id !== bedId) return bed;
+    const plantings = bed.plantings.filter(
+      (planting) => planting.year !== year || planting.plantName !== plantName,
+    );
+    if (plantings.length === bed.plantings.length) return bed;
+    return { ...bed, plantings, updatedAt: new Date().toISOString() };
+  });
+}
+
+function overlaps(
+  first: { row: number; col: number; width: number; height: number },
+  second: { row: number; col: number; width: number; height: number },
+): boolean {
+  return first.row < second.row + second.height && first.row + first.height > second.row &&
+    first.col < second.col + second.width && first.col + first.width > second.col;
+}
+
+function findEvenlySpacedColumns(
+  bed: GardenBed,
+  year: number,
+  row: number,
+  startCol: number,
+  endCol: number,
+  size: number,
+): number[] {
+  const span = endCol - startCol + 1;
+  const maximumCount = Math.floor(span / size);
+  const occupied = [
+    ...bed.plantings
+      .filter((planting) => planting.year === year)
+      .map((planting) => ({
+        row: planting.row,
+        col: planting.col,
+        width: planting.width,
+        height: planting.height,
+      })),
+    ...(bed.fixtures ?? []).map((fixture) => {
+      const bounds = fixtureBounds(fixture.shape);
+      return { row: fixture.row, col: fixture.col, ...bounds };
+    }),
+  ];
+
+  function isClear(col: number): boolean {
+    const proposed = { row, col, width: size, height: size };
+    return !occupied.some((item) => overlaps(proposed, item));
+  }
+
+  for (let count = maximumCount; count >= 2; count--) {
+    const maximumGap = Math.floor((span - size) / (count - 1));
+    for (let gap = maximumGap; gap >= size; gap--) {
+      const latestStart = endCol - size + 1 - gap * (count - 1);
+      for (let firstCol = startCol; firstCol <= latestStart; firstCol++) {
+        const columns = Array.from({ length: count }, (_, index) => firstCol + index * gap);
+        if (columns.every(isClear)) return columns;
+      }
+    }
+  }
+
+  const center = startCol + Math.floor((span - size) / 2);
+  const singleColumns = Array.from(
+    { length: Math.max(0, span - size + 1) },
+    (_, index) => startCol + index,
+  ).sort((a, b) => Math.abs(a - center) - Math.abs(b - center));
+  const singleColumn = singleColumns.find(isClear);
+  return singleColumn == null ? [] : [singleColumn];
+}
+
+export function draftAddPlantTypeToRow(
+  beds: GardenBed[],
+  bedId: string,
+  year: number,
+  plantType: PlantType,
+  row: number,
+  startCol: number,
+  endCol: number,
+): GardenBed[] {
+  return beds.map((bed) => {
+    if (bed.id !== bedId) return bed;
+    if (
+      row < 0 || row + plantType.width > bedGridRows(bed) ||
+      startCol < 0 || endCol >= bedGridCols(bed) || startCol > endCol
+    ) return bed;
+
+    const columns = findEvenlySpacedColumns(
+      bed,
+      year,
+      row,
+      startCol,
+      endCol,
+      plantType.width,
+    );
+    if (columns.length === 0) return bed;
+
+    const plantings: Planting[] = columns.map((col) => ({
+      id: uuidv4(),
+      bedId,
+      year,
+      row,
+      col,
+      width: plantType.width,
+      height: plantType.width,
+      plantName: plantType.plantName,
+      color: plantType.color,
+      ...(plantType.daysToHarvest != null ? { daysToHarvest: plantType.daysToHarvest } : {}),
+    }));
+    return {
+      ...bed,
+      plantings: [...bed.plantings, ...plantings],
+      updatedAt: new Date().toISOString(),
+    };
+  });
 }
 
 export function draftMovePlanting(
