@@ -45,6 +45,7 @@ export default function App() {
   const [config, setConfig] = useState<GitHubConfig | null>(loadConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(!config);
   const [activeTab, setActiveTab] = useState<'notes' | 'layout' | 'plants' | 'tasks'>('tasks');
+  const [isEditingNavigationWarningOpen, setIsEditingNavigationWarningOpen] = useState(false);
 
   // Seasons
   const {
@@ -135,6 +136,34 @@ export default function App() {
     ? computeDiff(editSessionOriginal, draftBeds)
     : null;
   const changeCount = diff ? countChanges(diff) : 0;
+
+  function showEditingNavigationWarning() {
+    setIsEditingNavigationWarningOpen(true);
+  }
+
+  function handleTabChange(tab: 'notes' | 'layout' | 'plants' | 'tasks') {
+    if (isEditingLayout && tab !== activeTab) {
+      showEditingNavigationWarning();
+      return;
+    }
+    setActiveTab(tab);
+  }
+
+  function handleSeasonChange(seasonId: string) {
+    if (isEditingLayout && seasonId !== selectedSeasonId) {
+      showEditingNavigationWarning();
+      return;
+    }
+    setSelectedSeasonId(seasonId);
+  }
+
+  async function handleAddSeason(name: string): Promise<boolean> {
+    if (isEditingLayout) {
+      showEditingNavigationWarning();
+      return false;
+    }
+    return addSeason(name);
+  }
 
   // ── Notes handlers ──────────────────────────────────────────────────────────
 
@@ -318,12 +347,12 @@ export default function App() {
     <GitHubConfigContext.Provider value={config}>
       <div className="min-h-screen bg-garden-50 flex flex-col">
         <Header onSettingsClick={() => setIsSettingsOpen(true)} totalNotes={totalCount} />
-        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
         <SeasonBar
           seasons={seasons}
           selectedSeasonId={selectedSeasonId}
-          onSelectSeason={setSelectedSeasonId}
-          onAddSeason={addSeason}
+          onSelectSeason={handleSeasonChange}
+          onAddSeason={handleAddSeason}
           onMoveSeason={moveSeason}
           isLoading={isSeasonsLoading}
           isMutating={isSeasonsMutating}
@@ -400,6 +429,7 @@ export default function App() {
               onDone={handleDoneEdit}
               onCancel={handleCancelEdit}
               onShowChanges={() => setIsShowingChanges(true)}
+              onBlockedNavigation={showEditingNavigationWarning}
               onAddBed={() => setIsAddBedOpen(true)}
               onEditBed={(bed) => setEditingBed(bed)}
               onDeleteBed={(bed) => setConfirmDeleteBed(bed)}
@@ -458,6 +488,20 @@ export default function App() {
             onClose={config ? () => setIsSettingsOpen(false) : undefined}
             onSave={handleSaveConfig}
           />
+        )}
+
+        {isEditingNavigationWarningOpen && (
+          <Modal
+            title="Finish Editing First"
+            onClose={() => setIsEditingNavigationWarningOpen(false)}
+          >
+            <p className="text-sm text-gray-600 mb-6">
+              Finish editing this garden bed before changing tabs, seasons, or garden beds. Click Done to save your changes or Cancel to discard them.
+            </p>
+            <div className="flex justify-end">
+              <Button onClick={() => setIsEditingNavigationWarningOpen(false)}>OK</Button>
+            </div>
+          </Modal>
         )}
 
         {/* Notes Modals */}

@@ -23,6 +23,7 @@ interface LayoutViewProps {
   onDone: () => void;
   onCancel: () => void;
   onShowChanges: () => void;
+  onBlockedNavigation: () => void;
   // Bed / planting callbacks
   onAddBed: () => void;
   onEditBed: (bed: GardenBed) => void;
@@ -54,6 +55,7 @@ export function LayoutView({
   onDone,
   onCancel,
   onShowChanges,
+  onBlockedNavigation,
   onAddBed,
   onEditBed,
   onDeleteBed,
@@ -76,6 +78,14 @@ export function LayoutView({
   const [selectedBedId, setSelectedBedId] = useState<string | null>(
     beds.length > 0 ? beds[0].id : null,
   );
+
+  function handleSelectedBedChange(bedId: string) {
+    if (isEditing && bedId !== selectedBedId) {
+      onBlockedNavigation();
+      return;
+    }
+    setSelectedBedId(bedId);
+  }
 
   useEffect(() => {
     if (!isEditing) setViewMode('visual');
@@ -279,7 +289,7 @@ export function LayoutView({
           year={selectedYear}
           zoomFactor={zoomFactor}
           selectedBedId={selectedBedId}
-          onSelectedBedChange={setSelectedBedId}
+          onSelectedBedChange={handleSelectedBedChange}
           isEditing={isEditing}
           onEditBed={onEditBed}
           onDeleteBed={onDeleteBed}
