@@ -9,13 +9,14 @@ export function usePlantTypes(config: GitHubConfig | null, seasonId: string) {
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadTypes(cfg: GitHubConfig, forceLoad: boolean = false) {
+  async function loadTypes(cfg: GitHubConfig, forceLoad: boolean = false): Promise<PlantType[]> {
     setIsLoading(true);
     setError(null);
     try {
       const loaded = await getPlantTypes(cfg, seasonId, forceLoad);
       console.log(`🌱 Loaded ${loaded.length} plant type(s)`);
       setPlantTypes(loaded);
+      return loaded;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('Failed to load plant types:', msg);
@@ -88,8 +89,9 @@ export function usePlantTypes(config: GitHubConfig | null, seasonId: string) {
     }
   }
 
-  function reloadPlantTypes() {
-    if (config) loadTypes(config).catch(() => {});
+  async function reloadPlantTypes(): Promise<PlantType[]> {
+    if (!config) return [];
+    return loadTypes(config, true);
   }
 
   async function loadPlantTypesForSeason(sourceSeasonId: string): Promise<PlantType[]> {

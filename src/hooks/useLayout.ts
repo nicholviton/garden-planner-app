@@ -24,7 +24,7 @@ export function useLayout(config: GitHubConfig | null, seasonId: string) {
   const [error, setError] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  async function loadBeds(cfg: GitHubConfig, forceLoad: boolean = false) {
+  async function loadBeds(cfg: GitHubConfig, forceLoad: boolean = false): Promise<GardenBed[]> {
     setIsLoading(true);
     setError(null);
     try {
@@ -34,6 +34,7 @@ export function useLayout(config: GitHubConfig | null, seasonId: string) {
         console.log(`  ${index + 1}. "${bed.name}": ${bed.plantings.length} plantings`);
       });
       setBeds(loaded);
+      return loaded;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('Failed to load garden beds:', msg);
@@ -249,6 +250,11 @@ export function useLayout(config: GitHubConfig | null, seasonId: string) {
     }
   }
 
+  async function reloadBeds(): Promise<GardenBed[]> {
+    if (!config) return [];
+    return loadBeds(config, true);
+  }
+
   return {
     beds,
     isLoading,
@@ -265,6 +271,6 @@ export function useLayout(config: GitHubConfig | null, seasonId: string) {
     movePlanting,
     addPlantingFromType,
     commitBeds,
-    loadBeds: (cfg: GitHubConfig) => loadBeds(cfg),
+    reloadBeds,
   };
 }

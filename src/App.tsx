@@ -75,6 +75,7 @@ export default function App() {
     selectedYear,
     setSelectedYear,
     commitBeds,
+    reloadBeds,
   } = useLayout(config, selectedSeasonId);
 
   // Layout — edit session draft state
@@ -125,7 +126,7 @@ export default function App() {
   } = useTasks(config, selectedSeasonId);
 
   useEffect(() => {
-    if (activeTab === 'plants') reloadPlantTypes();
+    if (activeTab === 'plants') reloadPlantTypes().catch(() => {});
   }, [activeTab]);
 
   // The beds shown in LayoutView: draft when editing, real otherwise
@@ -186,10 +187,18 @@ export default function App() {
 
   // ── Layout edit-session handlers ────────────────────────────────────────────
 
-  function handleStartEdit() {
-    const snapshot = JSON.parse(JSON.stringify(beds)) as GardenBed[];
-    setDraftBeds(snapshot);
-    setEditSessionOriginal(snapshot);
+  async function handleStartEdit() {
+    try {
+      const [freshBeds] = await Promise.all([
+        reloadBeds(),
+        reloadPlantTypes(),
+      ]);
+      const snapshot = JSON.parse(JSON.stringify(freshBeds)) as GardenBed[];
+      setDraftBeds(snapshot);
+      setEditSessionOriginal(snapshot);
+    } catch {
+      // Hook errors are surfaced in the active error banner.
+    }
   }
 
   async function handleDoneEdit() {
