@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { GardenBed, Planting, Fixture, FixtureCorner } from '@/types/layout';
-import { bedGridCols, bedGridRows, fixtureBounds } from '@/types/layout';
+import { bedGridCols, bedGridRows, CELL_SIZE_IN, fixtureBounds } from '@/types/layout';
 
 function triangleClipPath(corner: FixtureCorner): string {
   switch (corner) {
@@ -49,6 +49,14 @@ export function BedGrid({ bed, year, zoomFactor = 1, readOnly = false, onEmptyCe
   const zf = zoomFactor;
   const cols = Math.ceil(bedGridCols(bed) / zf);
   const rows = Math.ceil(bedGridRows(bed) / zf);
+  const columnMarkers = Array.from(
+    { length: Math.ceil(bedGridCols(bed) / CELL_SIZE_IN) },
+    (_, index) => index * CELL_SIZE_IN,
+  );
+  const rowMarkers = Array.from(
+    { length: Math.ceil(bedGridRows(bed) / CELL_SIZE_IN) },
+    (_, index) => index * CELL_SIZE_IN,
+  );
   const yearPlantings = bed.plantings.filter((p) => p.year === year);
   //const occupied = getOccupiedCells(yearPlantings);
 
@@ -260,14 +268,68 @@ export function BedGrid({ bed, year, zoomFactor = 1, readOnly = false, onEmptyCe
         }
       }}
     >
-      <div
-        className="p-1 bg-gray-50 rounded-lg border border-gray-200 inline-grid gap-px"
-        style={{
-          gridTemplateColumns: `repeat(${cols}, ${CELL_PX}px)`,
-          gridTemplateRows:    `repeat(${rows}, ${CELL_PX}px)`,
-        }}
-      >
-        {cells}
+      <div className="relative inline-block px-7 py-5">
+        {columnMarkers.map((marker) => {
+          const left = 28 + 10 + (marker / zf) * CELL_STEP;
+          return (
+            <span
+              key={`column-top-${marker}`}
+              className="absolute top-0 -translate-x-1/2 text-[9px] leading-4 text-gray-500 tabular-nums"
+              style={{ left }}
+              aria-hidden="true"
+            >
+              {marker}
+            </span>
+          );
+        })}
+        {columnMarkers.map((marker) => {
+          const left = 28 + 10 + (marker / zf) * CELL_STEP;
+          return (
+            <span
+              key={`column-bottom-${marker}`}
+              className="absolute bottom-0 -translate-x-1/2 text-[9px] leading-4 text-gray-500 tabular-nums"
+              style={{ left }}
+              aria-hidden="true"
+            >
+              {marker}
+            </span>
+          );
+        })}
+        {rowMarkers.map((marker) => {
+          const top = 20 + 10 + (marker / zf) * CELL_STEP;
+          return (
+            <span
+              key={`row-left-${marker}`}
+              className="absolute left-0 w-6 -translate-y-1/2 text-right text-[9px] leading-4 text-gray-500 tabular-nums"
+              style={{ top }}
+              aria-hidden="true"
+            >
+              {marker}
+            </span>
+          );
+        })}
+        {rowMarkers.map((marker) => {
+          const top = 20 + 10 + (marker / zf) * CELL_STEP;
+          return (
+            <span
+              key={`row-right-${marker}`}
+              className="absolute right-0 w-6 -translate-y-1/2 text-left text-[9px] leading-4 text-gray-500 tabular-nums"
+              style={{ top }}
+              aria-hidden="true"
+            >
+              {marker}
+            </span>
+          );
+        })}
+        <div
+          className="p-1 bg-gray-50 rounded-lg border border-gray-200 inline-grid gap-px"
+          style={{
+            gridTemplateColumns: `repeat(${cols}, ${CELL_PX}px)`,
+            gridTemplateRows:    `repeat(${rows}, ${CELL_PX}px)`,
+          }}
+        >
+          {cells}
+        </div>
       </div>
     </div>
   );
