@@ -105,12 +105,12 @@ export async function createNote(
   };
 
   // 3. Read-modify-write notes.json
-  const existing = await readSeasonNotes(config, seasonId);
+  const existing = await readSeasonNotes(config, seasonId, true);
   const notes = existing.notes;
   const sha = existing.sha;
   await putFile(
     config,
-    notesPathForSeason(seasonId),
+    existing.path,
     jsonToBase64([...notes, note]),
     `Add note ${note.id}`,
     sha,
@@ -126,6 +126,9 @@ export async function updateNote(
   originalPhotos: GardenPhoto[],
   seasonId: string = DEFAULT_SEASON_ID,
 ): Promise<GardenNote> {
+  const existing = await readSeasonNotes(config, seasonId, true);
+  if (!existing.notes.some((note) => note.id === id)) throw new Error(`Note ${id} not found`);
+
   // 1. Upload new photos (have dataUrl, no path)
   const uploadedPhotos: GardenPhoto[] = await Promise.all(
     formData.photos.map((p) => (p.dataUrl && !p.path ? uploadPhoto(config, p) : Promise.resolve(p))),
@@ -137,8 +140,6 @@ export async function updateNote(
   await Promise.all(removed.map((p) => removePhoto(config, p)));
 
   // 3. Read-modify-write notes.json
-  const existing = await readSeasonNotes(config, seasonId);
-  if (!existing.sha && existing.notes.length === 0) throw new Error('No notes found for this season.');
   const now = new Date().toISOString();
   let updated: GardenNote | undefined;
   const newNotes = existing.notes.map((n) => {
@@ -156,7 +157,7 @@ export async function updateNote(
     return n;
   });
   if (!updated) throw new Error(`Note ${id} not found`);
-  await putFile(config, notesPathForSeason(seasonId), jsonToBase64(newNotes), `Update note ${id}`, existing.sha);
+  await putFile(config, existing.path, jsonToBase64(newNotes), `Update note ${id}`, existing.sha);
   return updated;
 }
 
@@ -166,14 +167,15 @@ export async function deleteNote(
   photos: GardenPhoto[],
   seasonId: string = DEFAULT_SEASON_ID,
 ): Promise<void> {
+  const existing = await readSeasonNotes(config, seasonId, true);
+  if (!existing.sha) return; // Nothing to do
+
   // 1. Delete photo files
   await Promise.all(photos.map((p) => removePhoto(config, p)));
 
   // 2. Read-modify-write notes.json
-  const existing = await readSeasonNotes(config, seasonId);
-  if (!existing.sha) return; // Nothing to do
   const filtered = existing.notes.filter((n) => n.id !== id);
-  await putFile(config, notesPathForSeason(seasonId), jsonToBase64(filtered), `Delete note ${id}`, existing.sha);
+  await putFile(config, existing.path, jsonToBase64(filtered), `Delete note ${id}`, existing.sha);
 }
 
 /**

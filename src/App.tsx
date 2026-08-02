@@ -169,14 +169,14 @@ export default function App() {
   // ── Notes handlers ──────────────────────────────────────────────────────────
 
   async function handleAddSubmit(formData: Parameters<typeof addNote>[0]) {
-    await addNote(formData);
-    setIsAddOpen(false);
+    const success = await addNote(formData);
+    if (success) setIsAddOpen(false);
   }
 
   async function handleEditSubmit(formData: Parameters<typeof editNote>[1]) {
     if (!editingNote) return;
-    await editNote(editingNote.id, formData, editingNote.photos);
-    setEditingNote(null);
+    const success = await editNote(editingNote.id, formData, editingNote.photos);
+    if (success) setEditingNote(null);
   }
 
   async function handleDeleteConfirm() {

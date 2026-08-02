@@ -37,29 +37,37 @@ export function useNotes(config: GitHubConfig | null, seasonId: string) {
     loadNotes(config);
   }, [config, seasonId]);
 
-  async function addNote(formData: NoteFormData) {
-    if (!config) return;
+  async function addNote(formData: NoteFormData): Promise<boolean> {
+    if (!config) return false;
     setIsMutating(true);
     setError(null);
     try {
-      await createNote(config, formData, seasonId);
-      await loadNotes(config, true); // Force refresh after save
+      const created = await createNote(config, formData, seasonId);
+      setNotes((previous) => [created, ...previous].sort((a, b) => {
+        if (b.date !== a.date) return b.date.localeCompare(a.date);
+        return b.createdAt.localeCompare(a.createdAt);
+      }));
+      setSearchQuery('');
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      return false;
     } finally {
       setIsMutating(false);
     }
   }
 
-  async function editNote(id: string, formData: NoteFormData, originalPhotos: GardenNote['photos']) {
-    if (!config) return;
+  async function editNote(id: string, formData: NoteFormData, originalPhotos: GardenNote['photos']): Promise<boolean> {
+    if (!config) return false;
     setIsMutating(true);
     setError(null);
     try {
-      await updateNote(config, id, formData, originalPhotos, seasonId);
-      await loadNotes(config, true); // Force refresh after save
+      const updated = await updateNote(config, id, formData, originalPhotos, seasonId);
+      setNotes((previous) => previous.map((note) => note.id === id ? updated : note));
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      return false;
     } finally {
       setIsMutating(false);
     }
