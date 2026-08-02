@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { GitHubConfig } from '@/lib/github';
 import type { GardenNote, NoteFormData } from '@/types/note';
+import { noteTextToPlainText } from '@/lib/noteText';
 import {
   getSortedNotesForSeason,
   createNote,
@@ -82,9 +83,8 @@ export function useNotes(config: GitHubConfig | null, seasonId: string) {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return notes;
     return notes.filter((n) =>
-      n.noteText.toLowerCase().includes(q) ||
-      (n.plantName?.toLowerCase().includes(q) ?? false) ||
-      (n.gardenLocation?.toLowerCase().includes(q) ?? false) ||
+      (n.title?.toLowerCase().includes(q) ?? false) ||
+      noteTextToPlainText(n.noteText).toLowerCase().includes(q) ||
       n.date.includes(q),
     );
   }, [notes, searchQuery]);

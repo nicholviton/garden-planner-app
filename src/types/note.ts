@@ -10,9 +10,8 @@ export interface GardenNote {
   id: string;            // uuid v4
   seasonId?: string;
   date: string;          // "YYYY-MM-DD"
-  noteText: string;      // required
-  plantName?: string;    // optional
-  gardenLocation?: string; // optional
+  title?: string;        // optional only for legacy notes
+  noteText: string;      // required, sanitized rich-text HTML
   photos: GardenPhoto[]; // always an array
   createdAt: string;     // ISO datetime
   updatedAt: string;

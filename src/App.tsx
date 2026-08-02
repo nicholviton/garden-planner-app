@@ -391,7 +391,7 @@ export default function App() {
                 <SearchBar
                   value={searchQuery}
                   onChange={setSearchQuery}
-                  placeholder="Search by plant, location, or text…"
+                  placeholder="Search notes by title, date, or text…"
                 />
                 <Button
                   variant="primary"
@@ -515,12 +515,12 @@ export default function App() {
 
         {/* Notes Modals */}
         {isAddOpen && (
-          <Modal title="New Garden Note" onClose={() => setIsAddOpen(false)}>
+          <Modal title="New Garden Note" onClose={() => setIsAddOpen(false)} wide>
             <NoteForm onSubmit={handleAddSubmit} onClose={() => setIsAddOpen(false)} />
           </Modal>
         )}
         {editingNote && (
-          <Modal title="Edit Note" onClose={() => setEditingNote(null)}>
+          <Modal title="Edit Note" onClose={() => setEditingNote(null)} wide>
             <NoteForm
               note={editingNote}
               onSubmit={handleEditSubmit}

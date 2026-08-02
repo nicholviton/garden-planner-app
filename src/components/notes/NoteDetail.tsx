@@ -1,8 +1,9 @@
-import { MapPin, Leaf, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import type { GardenNote } from '@/types/note';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { PhotoImage } from '@/components/common/PhotoImage';
+import { sanitizeNoteHtml } from '@/lib/noteText';
 
 interface NoteDetailProps {
   note: GardenNote;
@@ -29,24 +30,13 @@ export function NoteDetail({ note, onClose, onEdit }: NoteDetailProps) {
           {formatDate(note.date)}
         </span>
 
-        {/* Plant + Location */}
-        <div className="flex flex-wrap gap-2">
-          {note.plantName && (
-            <span className="flex items-center gap-1 text-sm font-medium text-garden-700">
-              <Leaf className="w-4 h-4" />
-              {note.plantName}
-            </span>
-          )}
-          {note.gardenLocation && (
-            <span className="flex items-center gap-1 text-sm px-2 py-0.5 rounded-full bg-garden-100 text-garden-700">
-              <MapPin className="w-3 h-3" />
-              {note.gardenLocation}
-            </span>
-          )}
-        </div>
+        <h3 className="text-xl font-semibold text-gray-900">{note.title || 'Untitled Note'}</h3>
 
         {/* Note text */}
-        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{note.noteText}</p>
+        <div
+          className="note-rich-text text-sm text-gray-700 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: sanitizeNoteHtml(note.noteText) }}
+        />
 
         {/* Photos */}
         {note.photos.length > 0 && (

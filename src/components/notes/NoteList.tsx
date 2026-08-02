@@ -1,5 +1,6 @@
-import { Sprout, MapPin, Leaf, Image, Pencil, Trash2 } from 'lucide-react';
+import { Sprout, Image, Eye, Pencil, Trash2 } from 'lucide-react';
 import type { GardenNote } from '@/types/note';
+import { noteTextToPlainText } from '@/lib/noteText';
 
 interface NoteListProps {
   notes: GardenNote[];
@@ -44,8 +45,7 @@ export function NoteList({ notes, onView, onEdit, onDelete, searchQuery }: NoteL
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
             <th className="px-4 py-3 whitespace-nowrap">Date</th>
-            <th className="px-4 py-3 whitespace-nowrap">Plant</th>
-            <th className="px-4 py-3 whitespace-nowrap">Location</th>
+            <th className="px-4 py-3 whitespace-nowrap">Title</th>
             <th className="px-4 py-3 w-full">Note</th>
             <th className="px-4 py-3 whitespace-nowrap text-center">Photos</th>
             <th className="px-4 py-3"></th>
@@ -61,28 +61,14 @@ export function NoteList({ notes, onView, onEdit, onDelete, searchQuery }: NoteL
                 </span>
               </td>
 
-              {/* Plant */}
-              <td className="px-4 py-3 whitespace-nowrap">
-                {note.plantName ? (
-                  <span className="flex items-center gap-1 text-xs font-medium text-garden-700">
-                    <Leaf className="w-3 h-3 flex-shrink-0" />
-                    {note.plantName}
-                  </span>
-                ) : (
-                  <span className="text-gray-300">—</span>
-                )}
-              </td>
-
-              {/* Location */}
-              <td className="px-4 py-3 whitespace-nowrap">
-                {note.gardenLocation ? (
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-garden-100 text-garden-700">
-                    <MapPin className="w-3 h-3 flex-shrink-0" />
-                    {note.gardenLocation}
-                  </span>
-                ) : (
-                  <span className="text-gray-300">—</span>
-                )}
+              {/* Title */}
+              <td className="px-4 py-3 max-w-64">
+                <button
+                  className="text-left font-medium text-gray-800 line-clamp-2 hover:text-garden-700 transition-colors"
+                  onClick={() => onView(note)}
+                >
+                  {note.title || 'Untitled Note'}
+                </button>
               </td>
 
               {/* Note text */}
@@ -91,7 +77,7 @@ export function NoteList({ notes, onView, onEdit, onDelete, searchQuery }: NoteL
                   className="text-left text-gray-700 line-clamp-2 hover:text-garden-700 transition-colors"
                   onClick={() => onView(note)}
                 >
-                  {note.noteText}
+                  {noteTextToPlainText(note.noteText)}
                 </button>
               </td>
 
@@ -113,6 +99,13 @@ export function NoteList({ notes, onView, onEdit, onDelete, searchQuery }: NoteL
               {/* Actions */}
               <td className="px-4 py-3 whitespace-nowrap">
                 <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => onView(note)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-garden-600 hover:bg-garden-50 transition-colors"
+                    aria-label="View note"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => onEdit(note)}
                     className="p-1.5 rounded-lg text-gray-400 hover:text-garden-600 hover:bg-garden-50 transition-colors"

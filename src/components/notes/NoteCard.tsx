@@ -1,6 +1,7 @@
-import { MapPin, Leaf, Image, Pencil, Trash2 } from 'lucide-react';
+import { Image, Pencil, Trash2 } from 'lucide-react';
 import type { GardenNote } from '@/types/note';
 import { PhotoImage } from '@/components/common/PhotoImage';
+import { noteTextToPlainText } from '@/lib/noteText';
 
 interface NoteCardProps {
   note: GardenNote;
@@ -53,29 +54,19 @@ export function NoteCard({ note, onView, onEdit, onDelete }: NoteCardProps) {
           )}
         </div>
 
-        {/* Plant name */}
-        {note.plantName && (
-          <div className="flex items-center gap-1 text-xs font-medium text-garden-700">
-            <Leaf className="w-3 h-3" />
-            {note.plantName}
-          </div>
-        )}
-
-        {/* Location */}
-        {note.gardenLocation && (
-          <span className="inline-flex items-center gap-1 self-start text-xs px-2 py-0.5
-            rounded-full bg-garden-100 text-garden-700">
-            <MapPin className="w-3 h-3" />
-            {note.gardenLocation}
-          </span>
-        )}
+        <button
+          className="text-left font-semibold text-gray-800 hover:text-garden-700 transition-colors"
+          onClick={() => onView(note)}
+        >
+          {note.title || 'Untitled Note'}
+        </button>
 
         {/* Note text (truncated) */}
         <button
           className="text-left text-sm text-gray-700 leading-relaxed line-clamp-3 flex-1"
           onClick={() => onView(note)}
         >
-          {note.noteText}
+          {noteTextToPlainText(note.noteText)}
         </button>
 
         {/* Actions */}
